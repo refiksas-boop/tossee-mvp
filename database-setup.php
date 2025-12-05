@@ -15,9 +15,21 @@ function tossee_create_users_table() {
         dob DATE NOT NULL,
         photo LONGTEXT NOT NULL,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        first_name VARCHAR(60) NULL,
+        last_name VARCHAR(60) NULL,
+        gender VARCHAR(20) NULL,
+        country VARCHAR(120) NULL,
+        city VARCHAR(120) NULL,
+        hobbies TEXT NULL,
+        about TEXT NULL,
+        updated_at DATETIME NULL,
         PRIMARY KEY (id),
         UNIQUE KEY email (email),
-        UNIQUE KEY tossee_id (tossee_id)
+        UNIQUE KEY tossee_id (tossee_id),
+        UNIQUE KEY username (username),
+        KEY idx_username (username),
+        KEY idx_email (email),
+        KEY idx_created_at (created_at)
     ) $charset_collate;";
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
