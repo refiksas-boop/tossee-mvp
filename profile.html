@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Profile – Tossee</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #140D42 url("https://tossee.com/wp-content/uploads/2025/09/logo.png") no-repeat center top 40px;
+      background-size: 280px;
+      color: #fff;
+      text-align: center;
+    }
+    .wrap {
+      max-width: 700px;
+      margin: 260px auto 40px;
+      padding: 0 20px;
+    }
+    h2 {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 30px;
+      color: #00c6ff;
+    }
+    .profile-photo {
+      width: 140px;
+      height: 140px;
+      border: 3px solid #00c6ff;
+      border-radius: 50%;
+      margin: 0 0 25px 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .profile-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .content {
+      background: rgba(0,0,0,0.3);
+      padding: 20px;
+      border-radius: 12px;
+    }
+    .field {
+      margin: 12px 0;
+      font-size: 17px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      padding-bottom: 6px;
+    }
+    .field label {
+      font-weight: bold;
+      margin-right: 6px;
+      color: #a6d9ff;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="wrap">
+  <h2 id="profile-title">My Profile</h2>
+
+  <div class="profile-photo">
+    <img id="avatar"
+         src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+         alt="Profile photo">
+  </div>
+
+  <div class="content">
+    <div class="field"><label>Username:</label> <span id="username">-</span></div>
+    <div class="field"><label>Email:</label> <span id="email">-</span></div>
+
+    <div class="field"><label>First Name:</label> <span id="first_name">-</span></div>
+    <div class="field"><label>Last Name:</label> <span id="last_name">-</span></div>
+
+    <div class="field"><label>Gender:</label> <span id="gender">-</span></div>
+    <div class="field"><label>Date of Birth:</label> <span id="dob">-</span></div>
+
+    <div class="field"><label>Country:</label> <span id="country">-</span></div>
+    <div class="field"><label>City:</label> <span id="city">-</span></div>
+
+    <div class="field"><label>Hobbies:</label> <span id="hobbies">-</span></div>
+    <div class="field"><label>About Me:</label> <span id="about">-</span></div>
+  </div>
+</div>
+
+<script>
+async function loadProfile() {
+  try {
+    const headers = {};
+    if (window?.wpApiSettings?.nonce) {
+      headers["X-WP-Nonce"] = window.wpApiSettings.nonce;
+    }
+
+    // 1) Tossee profile
+    const profile = await fetch("/wp-json/tossee/v1/profile", {
+      credentials: "include",
+      headers
+    }).then(r => r.json());
+
+    // 2) WP user (with meta)
+    const user = await fetch("/wp-json/wp/v2/users/me?context=edit", {
+      credentials: "include",
+      headers
+    }).then(r => r.json());
+
+    // ------------------------------
+    // FILL FIELDS
+    // ------------------------------
+
+   // USERNAME + EMAIL
+document.getElementById("username").textContent =
+  profile.username || user.username || "-";
+
+document.getElementById("email").textContent =
+  profile.email || user.email || "-";
+
+// FIRST + LAST NAME
+document.getElementById("first_name").textContent =
+  profile.first_name || user.first_name || "-";
+
+document.getElementById("last_name").textContent =
+  profile.last_name || user.last_name || "-";
+
+// GENDER
+document.getElementById("gender").textContent =
+  user.meta?.gender || profile.gender || "-";
+
+// DOB
+let dob = user.meta?.dob || profile.dob || "-";
+document.getElementById("dob").textContent = dob;
+
+// COUNTRY
+document.getElementById("country").textContent =
+  user.meta?.country || profile.country || "-";
+
+// CITY
+document.getElementById("city").textContent =
+  user.meta?.city || profile.city || "-";
+
+// HOBBIES
+let hobbies = user.meta?.hobbies || profile.hobbies || "-";
+if (Array.isArray(hobbies)) hobbies = hobbies.join(", ");
+document.getElementById("hobbies").textContent = hobbies;
+
+// ABOUT
+document.getElementById("about").textContent =
+  user.meta?.about || profile.about || "-";
+
+
+  
+    const fullName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
+    document.getElementById("profile-title").textContent =
+      fullName ? "Profile of " + fullName : "My Profile";
+
+  } catch (err) {
+    console.error("Profile load error:", err);
+  }
+}
+
+loadProfile();
+</script>
+
+</body>
+</html>

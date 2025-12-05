@@ -1,0 +1,312 @@
+Tossee — MVP Specification
+
+This document describes the entire Tossee MVP, including file structure, database schema, expected behavior, missing features, and required fixes.
+Claude Code should use this file as the master reference when modifying or generating code.
+
+✅ 1. Project Overview
+
+Tossee is a random video chat platform, similar to Omegle, built on WordPress with custom users stored in a custom MySQL table, not WP default users.
+
+The project includes:
+
+Custom registration (username, email, password, DOB, photo verification)
+
+Custom login via session ($_SESSION['tossee_id'])
+
+Random video matching (WebRTC)
+
+User profile page (HTML pulling DB data)
+
+Edit profile page + handler
+
+Admin panel to list users + view their photo
+
+WebRTC signaling (later)
+
+✅ 2. Technology Stack
+
+Frontend: HTML, JavaScript
+
+Backend: PHP (inside WordPress environment)
+
+Database: MySQL (wp_tossee_users)
+
+Session-based auth
+
+WordPress REST API used only optionally
+
+WebRTC for video (UI placeholder exists, signaling missing)
+
+✅ 3. Current File Structure
+tossee-mvp/
+ ├── functions.php
+ ├── register-form.php
+ ├── register-handler.php
+ ├── edit-profile.html
+ ├── edit-profile-handler.php
+ ├── profile.html
+ ├── admin-users.php
+ ├── database-setup.php
+
+
+Claude Code should locate these files and update them according to the specifications below.
+
+✅ 4. Database Schema
+
+The existing table:
+
+id BIGINT AUTO_INCREMENT PRIMARY KEY
+tossee_id VARCHAR(40) UNIQUE
+username VARCHAR(60)
+email VARCHAR(120)
+password_hash VARCHAR(255)
+dob DATE
+photo LONGTEXT
+created_at DATETIME
+
+
+This MUST be extended to support profile fields:
+
+first_name VARCHAR(60) NULL
+last_name VARCHAR(60) NULL
+gender VARCHAR(20) NULL
+country VARCHAR(120) NULL
+city VARCHAR(120) NULL
+hobbies TEXT NULL
+about TEXT NULL
+updated_at DATETIME
+
+
+Claude must update the DB structure in database-setup.php.
+
+✅ 5. Required MVP Features (Claude must implement/fix)
+5.1 Registration Fixes
+
+Located in:
+
+register-form.php
+
+register-handler.php
+
+Missing or must improve:
+
+Ensure tossee_id is generated and saved correctly.
+
+After successful registration → redirect to:
+https://chat.tossee.com/?uid=TOSSEE_ID
+
+Validate age (18+)
+
+Ensure photo is saved and readable by admin later.
+
+Prevent duplicate usernames.
+
+Improve error codes / debug logging.
+
+5.2 Session Authentication
+
+Claude must ensure:
+
+$_SESSION['tossee_id']
+
+
+is consistently set on:
+
+registration
+
+login (future)
+
+profile pages
+
+edit profile
+
+5.3 Profile Page Logic
+
+Located in:
+
+profile.html
+
+Claude must implement:
+
+Fetch user by $_SESSION['tossee_id']
+
+Populate all fields:
+
+username
+
+email
+
+first_name / last_name
+
+gender
+
+dob
+
+country / city
+
+hobbies
+
+about
+
+Display profile photo
+
+5.4 Edit Profile Functionality
+
+Located in:
+
+edit-profile.html
+
+edit-profile-handler.php
+
+Claude must implement:
+
+Form fields for all profile fields
+
+Save changes to DB
+
+Validation (lengths, allowed chars)
+
+Redirect back with success message
+
+Save new photo if updated
+
+5.5 Admin User Dashboard
+
+Located in:
+
+admin-users.php
+
+Claude must implement admin view:
+
+List all users
+
+Show:
+
+username
+
+email
+
+age
+
+registration date
+
+Show profile photo (thumbnail)
+
+Ability to click to view full user card (optional)
+
+Filter/search users
+
+This admin panel must NOT require WP users — it reads directly from wp_tossee_users.
+
+5.6 WebRTC Random Match (Critical MVP)
+
+Claude must implement:
+
+WebRTC pairing logic:
+
+User enters “waiting room”
+
+When another user is available → connect
+
+Serverless solution using WebSockets or Firebase is acceptable for MVP
+
+If user disconnects → return to lobby automatically
+
+✅ 6. Missing Components Claude Must Generate
+
+Claude Code must create or modify:
+
+(1) Login system
+
+Even simple:
+
+username/email + password
+
+fetch DB user
+
+verify password
+
+set $_SESSION['tossee_id']
+
+(2) Logout handler
+(3) Signaling server or simple pairing endpoint
+
+Claude may:
+
+generate PHP WebSocket server
+OR
+
+choose lightweight Firebase signaling
+OR
+
+create a pairing REST endpoint
+OR
+
+use simple polling first (fallback MVP)
+
+✅ 7. MVP Workflow
+
+User journey:
+
+Registers with:
+
+username, email, password, DOB, selfie
+
+System saves data → sets session → redirects to /chat/?uid=...
+
+User can:
+
+Open My Profile
+
+Open Edit Profile
+
+Can join Random Chat
+
+Admin logs in → sees users list
+
+✅ 8. Claude Instructions
+
+Claude Code must:
+
+Read this file FIRST
+
+Open each file in project directory
+
+Map tasks to correct files
+
+Generate missing files if needed
+
+Refactor broken PHP
+
+Add comments
+
+Keep everything consistent
+
+DO NOT convert project to WP default users
+
+Maintain custom table system
+
+⚠️ Final Directive to Claude Code
+
+Treat this document as the authoritative specification.
+Update all existing files and generate missing components to fulfill the entire MVP described here.
+Maintain compatibility with WordPress environment but rely on custom DB tables for authentication and user data.
+After modifications, provide a summary of changes and next steps.
+
+🎉 DONE — Entire Claude Code Blueprint Ready
+
+Kai Claude Code atsigaus, tu tiesiog:
+
+Sukuri failą CLAUDE.md
+
+Įkeli visą šį tekstą
+
+Claude Code automatiškai:
+
+suras failus
+
+pataisys kodą
+
+sukurs papildomus
+
+įdiegs MVP logiką

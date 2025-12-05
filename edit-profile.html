@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tossee – Complete Your Profile</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet"/>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #140D42;
+      color: #000;
+      padding-top: 260px;
+      background-image: url("https://tossee.com/wp-content/uploads/2025/09/logo.png");
+      background-repeat: no-repeat;
+      background-position: center 40px;
+      background-size: 320px;
+    }
+    .wrap {
+      max-width: 480px;
+      margin: 0 auto 60px;
+      padding: 20px;
+      background: rgba(255,255,255,0.96);
+      border-radius: 14px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+    }
+    h2 {
+      text-align: center;
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-size: 24px;
+      font-weight: 800;
+      color: #140D42;
+    }
+    form label {
+      display: block;
+      margin: 10px 0 6px;
+      font-weight: bold;
+    }
+    form input, form select, form textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    form input[readonly] { background: #eee; color: #555; }
+
+    .checkbox-group label {
+      margin-right: 10px;
+      font-weight: normal;
+    }
+
+    .btn {
+      margin-top: 15px;
+      padding: 12px;
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: bold;
+      color: #fff;
+      background: linear-gradient(45deg,#a64dff,#00c6ff,#0072ff);
+      cursor: pointer;
+    }
+    .btn:hover { opacity: 0.9; }
+
+    .profile-photo {
+      margin: 15px auto;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      border: 3px solid #00c6ff;
+      overflow: hidden;
+      position: relative;
+      background: #eee;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .profile-photo img {
+      max-width: 100%;
+      display: block;
+      cursor: grab;
+    }
+
+    .cropper-crop-box,
+    .cropper-view-box { display: none !important; }
+    .cropper-modal { opacity: 0 !important; }
+
+    .profile-photo::before {
+      content: "";
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      border: 2px dashed rgba(20, 13, 66, 0.6);
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="wrap">
+    <h2>Complete Your Profile</h2>
+
+    <form id="profileForm">
+
+      <label>First Name *</label>
+      <input type="text" id="first_name" required>
+
+      <label>Last Name *</label>
+      <input type="text" id="last_name" required>
+
+      <label>Gender *</label>
+      <select id="gender" required>
+        <option value="">-- Select --</option>
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+        <option value="other">Other</option>
+      </select>
+
+      <label>Date of Birth</label>
+      <input type="date" id="dob" value="2000-01-01" readonly>
+
+      <label>Country *</label>
+      <select id="country" required>
+        <option value="">-- Select Country --</option>
+      </select>
+
+      <label>City *</label>
+      <select id="city" required>
+        <option value="">-- Select City --</option>
+      </select>
+
+      <label>Hobbies</label>
+      <div class="checkbox-group">
+        <label><input type="checkbox" name="hobbies" value="sports"> Sports</label>
+        <label><input type="checkbox" name="hobbies" value="music"> Music</label>
+        <label><input type="checkbox" name="hobbies" value="travel"> Travel</label>
+        <label><input type="checkbox" name="hobbies" value="reading"> Reading</label>
+        <label><input type="checkbox" name="hobbies" value="gaming"> Gaming</label>
+      </div>
+
+      <label>About Me</label>
+      <textarea id="about"></textarea>
+
+      <label>Profile Photo</label>
+      <div class="profile-photo">
+        <img id="previewImage" src="https://via.placeholder.com/300">
+      </div>
+      <input type="file" id="profile_picture" accept="image/*">
+
+      <button type="submit" class="btn">Save Profile</button>
+
+    </form>
+  </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+<script>
+/* LOAD COUNTRIES */
+fetch("/wp-content/uploads/countries.json")
+  .then(r => r.json())
+  .then(data => {
+    const c = document.getElementById("country");
+    const city = document.getElementById("city");
+
+    data.forEach(row => {
+      const opt = document.createElement("option");
+      opt.value = row.country;
+      opt.textContent = row.country;
+      c.appendChild(opt);
+    });
+
+    c.addEventListener("change", () => {
+      city.innerHTML = "<option value=''>-- Select City --</option>";
+      const selected = data.find(x => x.country === c.value);
+      if (selected && selected.cities) {
+        selected.cities.forEach(ct => {
+          const opt = document.createElement("option");
+          opt.value = ct;
+          opt.textContent = ct;
+          city.appendChild(opt);
+        });
+      }
+    });
+  });
+
+/* LOAD PROFILE (GET) */
+fetch("/wp-json/tossee/v1/profile", { credentials: "include" })
+  .then(r => r.json())
+  .then(u => {
+    if (!u) return;
+
+    first_name.value = u.first_name || "";
+    last_name.value = u.last_name || "";
+    gender.value = u.gender || "";
+
+    /* ✔ DOB FIX — dabar rodoma tikra registracijos data */
+    if (u.dob && u.dob !== "") {
+      dob.value = u.dob.substring(0, 10);
+    }
+
+    country.value = u.country || "";
+    city.value = u.city || "";
+    about.value = u.about || "";
+
+    if (u.hobbies) {
+      u.hobbies.forEach(h => {
+        const cb = document.querySelector(`input[name='hobbies'][value='${h}']`);
+        if (cb) cb.checked = true;
+      });
+    }
+
+    if (u.photo) previewImage.src = u.photo;
+  });
+
+/* CROP IMAGE */
+let cropper;
+const fileInput = document.getElementById("profile_picture");
+const previewImage = document.getElementById("previewImage");
+
+fileInput.addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = event => {
+    previewImage.src = event.target.result;
+
+    if (cropper) cropper.destroy();
+
+    cropper = new Cropper(previewImage, {
+      aspectRatio: 1,
+      dragMode: "move",
+      viewMode: 1,
+      background: false,
+      autoCropArea: 1,
+      movable: true,
+      zoomable: true
+    });
+  };
+  reader.readAsDataURL(file);
+});
+
+/* SAVE PROFILE (POST) */
+profileForm.onsubmit = async e => {
+  e.preventDefault();
+
+  let finalPhoto = null;
+
+  if (cropper) {
+    const sq = cropper.getCroppedCanvas({ width: 300, height: 300 });
+    const c = document.createElement("canvas");
+    const ctx = c.getContext("2d");
+    c.width = 300;
+    c.height = 300;
+
+    ctx.beginPath();
+    ctx.arc(150,150,150,0,Math.PI*2);
+    ctx.clip();
+    ctx.drawImage(sq,0,0,300,300);
+
+    finalPhoto = c.toDataURL("image/png");
+  }
+
+  const hobbies = [...document.querySelectorAll("input[name='hobbies']:checked")]
+        .map(cb => cb.value);
+
+  const res = await fetch("/wp-json/tossee/v1/save-profile", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "X-WP-Nonce": window.wpApiSettings.nonce
+    },
+    body: JSON.stringify({
+      first_name: first_name.value,
+      last_name: last_name.value,
+      gender: gender.value,
+      dob: dob.value,
+      country: country.value,
+      city: city.value,
+      about: about.value,
+      hobbies,
+      photo: finalPhoto
+    })
+  });
+
+  const json = await res.json();
+
+  if (json.status === "ok") {
+    window.location.href = "/my-account";
+  } else {
+    alert("Failed to save profile.");
+    console.log(json);
+  }
+};
+</script>
+
+</body>
+</html>
