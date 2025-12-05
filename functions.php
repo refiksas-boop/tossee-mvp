@@ -229,3 +229,10 @@ add_action('template_redirect', function () {
 // Paslepia WP admin barą visiems vartotojams frontend'e
 add_filter('show_admin_bar', '__return_false');
 
+/* ================================
+   TOSSEE MVP INITIALIZATION
+================================ */
+// Load Tossee custom functionality
+if (file_exists(get_template_directory() . '/tossee-mvp/tossee-init.php')) {
+    require_once get_template_directory() . '/tossee-mvp/tossee-init.php';
+}
