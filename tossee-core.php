@@ -224,7 +224,16 @@ if ( ! function_exists('tossee_custom_register_handler') ) {
         global $wpdb;
         $table = $wpdb->prefix . 'tossee_users';
 
-        tossee_log("Registration handler called", 'info');
+        tossee_log("=== Registration handler called ===", 'info');
+        tossee_log("POST data: " . print_r($_POST, true), 'debug');
+
+        // Check if table exists
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table'") === $table;
+        if (!$table_exists) {
+            tossee_log("ERROR: Table $table does not exist!", 'error');
+            // Try to create it
+            tossee_core_create_users_table();
+        }
 
         if (
             empty($_POST['user_login']) ||
@@ -234,6 +243,11 @@ if ( ! function_exists('tossee_custom_register_handler') ) {
             empty($_POST['photo'])
         ) {
             tossee_log("Registration failed: missing fields", 'error');
+            tossee_log("Missing: user_login=" . (empty($_POST['user_login']) ? 'MISSING' : 'OK') .
+                       ", user_email=" . (empty($_POST['user_email']) ? 'MISSING' : 'OK') .
+                       ", user_pass=" . (empty($_POST['user_pass']) ? 'MISSING' : 'OK') .
+                       ", dob=" . (empty($_POST['dob']) ? 'MISSING' : 'OK') .
+                       ", photo=" . (empty($_POST['photo']) ? 'MISSING' : 'OK'), 'error');
             $back = wp_get_referer() ?: home_url('/register');
             wp_safe_redirect(add_query_arg('error', 'missing_fields', $back));
             exit;
@@ -298,6 +312,9 @@ if ( ! function_exists('tossee_custom_register_handler') ) {
         $tossee_id = tossee_generate_id();
         $hash      = password_hash($pass, PASSWORD_DEFAULT);
 
+        tossee_log("Attempting to insert user: username={$username}, email={$email}, tossee_id={$tossee_id}", 'info');
+        tossee_log("Photo size: " . strlen($photo) . " bytes", 'debug');
+
         $inserted = $wpdb->insert(
             $table,
             [
@@ -319,17 +336,20 @@ if ( ! function_exists('tossee_custom_register_handler') ) {
 
         if (!$inserted) {
             tossee_log("Registration failed: DB error - " . $wpdb->last_error, 'error');
+            tossee_log("Last query: " . $wpdb->last_query, 'error');
             $back = wp_get_referer() ?: home_url('/register');
             wp_safe_redirect(add_query_arg('error', 'save_failed', $back));
             exit;
         }
 
-        tossee_set_uid_cookie($tossee_id);
+        $insert_id = $wpdb->insert_id;
+        tossee_log("User registered successfully: {$username} ({$tossee_id}), DB ID: {$insert_id}", 'info');
 
-        tossee_log("User registered successfully: {$username} ({$tossee_id})", 'info');
+        tossee_set_uid_cookie($tossee_id);
 
         // Redirect į chat arba į success puslapį
         $redirect_url = !empty($_POST['redirect_to']) ? $_POST['redirect_to'] : home_url('/');
+        tossee_log("Redirecting to: {$redirect_url}", 'info');
         wp_safe_redirect($redirect_url);
         exit;
     }
