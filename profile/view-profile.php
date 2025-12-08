@@ -4,6 +4,18 @@
  * Displays user profile information
  */
 
+// Handle uid parameter for cross-domain redirects
+if (isset($_GET['uid']) && !empty($_GET['uid'])) {
+    $uid = sanitize_text_field($_GET['uid']);
+    $user_check = tossee_get_user_by_id($uid);
+
+    if ($user_check) {
+        tossee_set_user_session($uid);
+        wp_safe_redirect(home_url('/my-account'));
+        exit;
+    }
+}
+
 // Require authentication
 tossee_require_auth();
 

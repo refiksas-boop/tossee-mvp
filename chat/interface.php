@@ -4,6 +4,23 @@
  * WebRTC video chat interface
  */
 
+// Handle uid parameter from registration redirect
+if (isset($_GET['uid']) && !empty($_GET['uid'])) {
+    $uid = sanitize_text_field($_GET['uid']);
+
+    // Verify the user exists
+    $user_check = tossee_get_user_by_id($uid);
+
+    if ($user_check) {
+        // Set session for this user
+        tossee_set_user_session($uid);
+
+        // Redirect to clean URL without uid parameter
+        wp_safe_redirect(home_url('/chat'));
+        exit;
+    }
+}
+
 // Require authentication
 tossee_require_auth();
 
