@@ -122,8 +122,8 @@ function tossee_custom_register_handler() {
 
     tossee_log("User registered successfully: {$username} ({$tossee_id})", 'info');
 
-    /* --- Redirect to CHAT with uid --- */
-    $redirect = "https://chat.tossee.com/?uid=" . urlencode($tossee_id);
+    /* --- Redirect to CHAT on main domain (session works here) --- */
+    $redirect = home_url('/chat');  // Changed from chat.tossee.com to main domain
 
     wp_safe_redirect($redirect);
     exit;
