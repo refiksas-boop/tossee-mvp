@@ -12,9 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Include all Tossee files
 require_once __DIR__ . '/tossee-helpers.php';
+require_once __DIR__ . '/tossee-api.php';
 require_once __DIR__ . '/database-setup.php';
 require_once __DIR__ . '/register-handler.php';
 require_once __DIR__ . '/register-form.php';
 require_once __DIR__ . '/login-handler.php';
 require_once __DIR__ . '/login-form.php';
+require_once __DIR__ . '/profile-page.php';
 require_once __DIR__ . '/admin-users.php';

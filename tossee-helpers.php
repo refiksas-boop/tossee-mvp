@@ -153,3 +153,52 @@ if ( ! function_exists( 'tossee_is_username_available' ) ) {
         return ( $count == 0 );
     }
 }
+
+/**
+ * Require authentication - redirect to login if not logged in
+ */
+if ( ! function_exists( 'tossee_require_auth' ) ) {
+    function tossee_require_auth() {
+        $uid = tossee_get_current_user_id();
+        if ( ! $uid ) {
+            wp_safe_redirect( home_url( '/login' ) );
+            exit;
+        }
+    }
+}
+
+/**
+ * Parse hobbies string to array
+ */
+if ( ! function_exists( 'tossee_parse_hobbies' ) ) {
+    function tossee_parse_hobbies( $hobbies_string ) {
+        if ( empty( $hobbies_string ) ) {
+            return array();
+        }
+        return array_map( 'trim', explode( ',', $hobbies_string ) );
+    }
+}
+
+/**
+ * Get photo URL (convert base64 to displayable format)
+ */
+if ( ! function_exists( 'tossee_get_photo_url' ) ) {
+    function tossee_get_photo_url( $photo ) {
+        if ( empty( $photo ) ) {
+            return 'https://via.placeholder.com/300x300.png?text=No+Photo';
+        }
+
+        // If already a data URL, return as-is
+        if ( strpos( $photo, 'data:image/' ) === 0 ) {
+            return $photo;
+        }
+
+        // If it's a regular URL, return as-is
+        if ( strpos( $photo, 'http' ) === 0 ) {
+            return $photo;
+        }
+
+        // Default placeholder
+        return 'https://via.placeholder.com/300x300.png?text=No+Photo';
+    }
+}
