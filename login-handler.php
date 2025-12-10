@@ -9,9 +9,13 @@ add_action('admin_post_tossee_custom_login',        'tossee_custom_login_handler
 if ( ! function_exists( 'tossee_custom_login_handler' ) ) {
     function tossee_custom_login_handler() {
         tossee_log( 'Login handler called', 'info' );
+        tossee_log( 'POST data: ' . print_r($_POST, true), 'info' );
+        tossee_log( 'Request method: ' . $_SERVER['REQUEST_METHOD'], 'info' );
 
         if ( empty( $_POST['user_email'] ) || empty( $_POST['user_pass'] ) ) {
             tossee_log( 'Login failed: missing fields', 'error' );
+            tossee_log( 'user_email: ' . (isset($_POST['user_email']) ? $_POST['user_email'] : 'NOT SET'), 'error' );
+            tossee_log( 'user_pass: ' . (isset($_POST['user_pass']) ? 'EXISTS' : 'NOT SET'), 'error' );
             $back = wp_get_referer() ?: home_url( '/login' );
             wp_safe_redirect( add_query_arg( 'error', 'missing_fields', $back ) );
             exit;
