@@ -89,6 +89,16 @@
       border-radius: 8px;
       margin-bottom: 20px;
     }
+    .debug-info {
+      background: rgba(255, 255, 0, 0.2);
+      border: 2px solid #ffeb3b;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      text-align: left;
+      font-size: 14px;
+      font-family: monospace;
+    }
   </style>
 </head>
 
@@ -96,6 +106,12 @@
 
 <div class="wrap">
   <h2 id="profile-title">My Profile</h2>
+
+  <!-- DEBUG INFO -->
+  <div id="debug-info" class="debug-info" style="display:none;">
+    <strong>🔍 DEBUG INFO:</strong><br>
+    <div id="debug-content"></div>
+  </div>
 
   <div id="error-container"></div>
 
@@ -130,35 +146,63 @@
 
 <script>
 async function loadProfile() {
+  const debugInfo = document.getElementById('debug-info');
+  const debugContent = document.getElementById('debug-content');
+
+  // Show debug info
+  debugInfo.style.display = 'block';
+
   try {
-    console.log("Loading Tossee profile...");
+    debugContent.innerHTML += '✅ Starting API call...<br>';
 
     // Get ONLY Tossee profile data
     const response = await fetch("/wp-json/tossee/v1/profile", {
       credentials: "include"
     });
 
+    debugContent.innerHTML += `✅ Response status: ${response.status}<br>`;
+
     const data = await response.json();
+
+    debugContent.innerHTML += '✅ Response received:<br>';
+    debugContent.innerHTML += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+
     console.log("API Response:", data);
 
     // Check if API call was successful
     if (data.status !== 'ok' || !data.user) {
       console.error("Profile load failed:", data);
-      document.getElementById("error-container").innerHTML =
-        '<div class="error-msg">Failed to load profile. Please <a href="/login" style="color:#fff;text-decoration:underline;">log in</a> again.</div>';
+
+      debugContent.innerHTML += '❌ API returned error or no user data<br>';
+
+      if (data.code === 'not_authenticated') {
+        document.getElementById("error-container").innerHTML =
+          '<div class="error-msg">You are not logged in. Please <a href="/login" style="color:#fff;text-decoration:underline;">log in</a> first.</div>';
+      } else {
+        document.getElementById("error-container").innerHTML =
+          '<div class="error-msg">Failed to load profile. Error: ' + (data.message || 'Unknown error') + '</div>';
+      }
       return;
     }
 
     const user = data.user;
 
-    // USERNAME (from registration)
+    debugContent.innerHTML += '<br>✅ User data loaded successfully!<br>';
+    debugContent.innerHTML += `Username: ${user.username}<br>`;
+    debugContent.innerHTML += `Email: ${user.email}<br>`;
+    debugContent.innerHTML += `DOB: ${user.dob}<br>`;
+
+    // USERNAME (from registration) - KRITINIAI DUOMENYS
     document.getElementById("username").textContent = user.username || "-";
+    debugContent.innerHTML += '✅ Username displayed<br>';
 
-    // EMAIL (from registration)
+    // EMAIL (from registration) - KRITINIAI DUOMENYS
     document.getElementById("email").textContent = user.email || "-";
+    debugContent.innerHTML += '✅ Email displayed<br>';
 
-    // DATE OF BIRTH (from registration - readonly)
+    // DATE OF BIRTH (from registration) - KRITINIAI DUOMENYS
     document.getElementById("dob").textContent = user.dob || "-";
+    debugContent.innerHTML += '✅ DOB displayed<br>';
 
     // Other fields
     document.getElementById("first_name").textContent = user.first_name || "-";
@@ -186,6 +230,7 @@ async function loadProfile() {
     // Update photo
     if (user.photo) {
       document.getElementById("avatar").src = user.photo;
+      debugContent.innerHTML += '✅ Photo displayed<br>';
     }
 
     // Update title with full name
@@ -194,11 +239,15 @@ async function loadProfile() {
       fullName ? "Profile of " + fullName : `@${user.username}`;
 
     console.log("Profile loaded successfully!");
+    debugContent.innerHTML += '<br>✅ ALL DATA LOADED SUCCESSFULLY!';
 
   } catch (err) {
     console.error("Profile load error:", err);
+    debugContent.innerHTML += '<br>❌ ERROR: ' + err.message + '<br>';
+    debugContent.innerHTML += 'Stack: ' + err.stack;
+
     document.getElementById("error-container").innerHTML =
-      '<div class="error-msg">Failed to load profile. Please check your connection.</div>';
+      '<div class="error-msg">Failed to load profile. Error: ' + err.message + '</div>';
   }
 }
 
