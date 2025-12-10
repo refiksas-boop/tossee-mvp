@@ -229,6 +229,13 @@ add_action('template_redirect', function () {
 // Paslepia WP admin barą visiems vartotojams frontend'e
 add_filter('show_admin_bar', '__return_false');
 
+// Allow redirects to Tossee subdomains
+add_filter('allowed_redirect_hosts', function($hosts) {
+    $hosts[] = 'chat.tossee.com';
+    $hosts[] = 'tossee.com';
+    return $hosts;
+});
+
 // Include Tossee Core Plugin
 require_once get_stylesheet_directory() . '/tossee-core.php';
 

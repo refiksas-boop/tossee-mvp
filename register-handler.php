@@ -6,6 +6,12 @@
 add_action('admin_post_nopriv_tossee_custom_register', 'tossee_custom_register_handler');
 add_action('admin_post_tossee_custom_register',        'tossee_custom_register_handler');
 
+// Allow redirect to chat subdomain
+add_filter('allowed_redirect_hosts', function($hosts) {
+    $hosts[] = 'chat.tossee.com';
+    return $hosts;
+});
+
 function tossee_custom_register_handler() {
 	
 	
