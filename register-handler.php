@@ -75,7 +75,7 @@ error_log("POST DATA: " . print_r($_POST, true));
 
     /* --- Set session --- */
     if ( ! session_id() ) session_start();
-    $_SESSION['tossee_id'] = $tossee_id;
+    $_SESSION['tossee_uid'] = $tossee_id;
 
     /* --- Redirect į CHAT su uid --- */
     $redirect = "https://chat.tossee.com/?uid=" . urlencode($tossee_id);
