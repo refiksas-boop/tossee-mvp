@@ -25,7 +25,7 @@ error_log("POST DATA: " . print_r($_POST, true));
         empty($_POST['photo'])
     ) {
         $back = wp_get_referer() ?: home_url('/register');
-        wp_safe_redirect( add_query_arg('reg_error', 'missing_fields', $back) );
+        wp_safe_redirect( add_query_arg('error', 'missing_fields', $back) );
         exit;
     }
 
@@ -42,7 +42,7 @@ error_log("POST DATA: " . print_r($_POST, true));
 
     if ( $exists > 0 ) {
         $back = wp_get_referer() ?: home_url('/register');
-        wp_safe_redirect( add_query_arg('reg_error', 'email_exists', $back) );
+        wp_safe_redirect( add_query_arg('error', 'email_exists', $back) );
         exit;
     }
 
@@ -69,7 +69,7 @@ error_log("POST DATA: " . print_r($_POST, true));
 
     if ( ! $inserted ) {
         $back = wp_get_referer() ?: home_url('/register');
-        wp_safe_redirect( add_query_arg('reg_error', 'save_failed', $back) );
+        wp_safe_redirect( add_query_arg('error', 'save_failed', $back) );
         exit;
     }
 

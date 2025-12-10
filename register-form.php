@@ -157,11 +157,10 @@ function tossee_register_form_shortcode() {
 
   <form id="tossee-register-form"
       method="post"
-      action="https://tossee.com/wp-admin/admin-post.php"
-
+      action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 
     <input type="hidden" name="action" value="tossee_custom_register">
-    <input type="hidden" name="redirect_to" value="https://tossee.com/chat">
+    <input type="hidden" name="redirect_to" value="<?php echo esc_url( home_url( '/chat' ) ); ?>">
 
     <input type="text" name="user_login" placeholder="Username" required>
     <input type="email" name="user_email" placeholder="Email" required>
@@ -313,12 +312,7 @@ confirmRules.onclick = () => {
     modal.style.display = "none";
     regForm.submit();
 };
-								
-/* TESTAS — PATIKRINTI AR SUBMIT VEIKIA */
-regForm.addEventListener("submit", () => {
-    alert("FORMA SUBMITINASI");
-});
-								
+
 /* ========= ERROR POPUP ========= */
 function showError(msg) {
     const modalErr = document.createElement("div");
