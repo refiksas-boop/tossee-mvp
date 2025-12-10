@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Tossee – Complete Your Profile</title>
+  <title>Tossee – Edit Profile</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet"/>
   <style>
     body {
@@ -43,10 +43,12 @@
       border: 1px solid #ccc;
       border-radius: 8px;
       font-size: 14px;
+      box-sizing: border-box;
     }
     form input[readonly] { background: #eee; color: #555; }
 
     .checkbox-group label {
+      display: inline;
       margin-right: 10px;
       font-weight: normal;
     }
@@ -85,10 +87,6 @@
       cursor: grab;
     }
 
-    .cropper-crop-box,
-    .cropper-view-box { display: none !important; }
-    .cropper-modal { opacity: 0 !important; }
-
     .profile-photo::before {
       content: "";
       position: absolute;
@@ -100,13 +98,35 @@
       left: 0;
       pointer-events: none;
     }
+
+    .back-link {
+      text-align: center;
+      margin-top: 15px;
+    }
+
+    .back-link a {
+      color: #0072ff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .error-msg {
+      background: #ff4444;
+      color: white;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      display: none;
+    }
   </style>
 </head>
 
 <body>
 
   <div class="wrap">
-    <h2>Complete Your Profile</h2>
+    <h2>Edit Your Profile</h2>
+
+    <div id="errorMsg" class="error-msg"></div>
 
     <form id="profileForm">
 
@@ -125,7 +145,7 @@
       </select>
 
       <label>Date of Birth</label>
-      <input type="date" id="dob" value="2000-01-01" readonly>
+      <input type="date" id="dob" readonly>
 
       <label>Country *</label>
       <select id="country" required>
@@ -147,22 +167,34 @@
       </div>
 
       <label>About Me</label>
-      <textarea id="about"></textarea>
+      <textarea id="about" rows="4"></textarea>
 
       <label>Profile Photo</label>
       <div class="profile-photo">
-        <img id="previewImage" src="https://via.placeholder.com/300">
+        <img id="previewImage" src="https://via.placeholder.com/300x300.png?text=No+Photo">
       </div>
       <input type="file" id="profile_picture" accept="image/*">
 
       <button type="submit" class="btn">Save Profile</button>
 
     </form>
+
+    <div class="back-link">
+      <a href="/profile">← Back to Profile</a>
+    </div>
   </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
 <script>
+const errorMsg = document.getElementById('errorMsg');
+
+function showError(msg) {
+  errorMsg.textContent = msg;
+  errorMsg.style.display = 'block';
+  setTimeout(() => { errorMsg.style.display = 'none'; }, 5000);
+}
+
 /* LOAD COUNTRIES */
 fetch("/wp-content/uploads/countries.json")
   .then(r => r.json())
@@ -189,35 +221,65 @@ fetch("/wp-content/uploads/countries.json")
         });
       }
     });
-  });
+  })
+  .catch(err => console.warn("Countries JSON not found:", err));
 
-/* LOAD PROFILE (GET) */
+/* LOAD PROFILE (GET) - FIXED */
 fetch("/wp-json/tossee/v1/profile", { credentials: "include" })
   .then(r => r.json())
-  .then(u => {
-    if (!u) return;
+  .then(response => {
+    console.log("Profile data:", response);
+
+    if (response.status !== 'ok' || !response.user) {
+      console.error("Profile load failed:", response);
+      showError("Failed to load profile data. Please log in again.");
+      setTimeout(() => { window.location.href = '/login'; }, 2000);
+      return;
+    }
+
+    const u = response.user;  // ✅ FIXED: Access user data correctly
 
     first_name.value = u.first_name || "";
     last_name.value = u.last_name || "";
     gender.value = u.gender || "";
 
-    /* ✔ DOB FIX — dabar rodoma tikra registracijos data */
+    // DOB - readonly, from registration
     if (u.dob && u.dob !== "") {
       dob.value = u.dob.substring(0, 10);
     }
 
     country.value = u.country || "";
-    city.value = u.city || "";
+
+    // Wait for country dropdown to populate, then set city
+    setTimeout(() => {
+      const countrySelect = document.getElementById("country");
+      if (countrySelect.value) {
+        countrySelect.dispatchEvent(new Event('change'));
+        setTimeout(() => {
+          city.value = u.city || "";
+        }, 100);
+      }
+    }, 300);
+
     about.value = u.about || "";
 
+    // Hobbies - ✅ FIXED: Convert string to array
     if (u.hobbies) {
-      u.hobbies.forEach(h => {
+      const hobbiesArray = u.hobbies.split(',').map(h => h.trim());
+      hobbiesArray.forEach(h => {
         const cb = document.querySelector(`input[name='hobbies'][value='${h}']`);
         if (cb) cb.checked = true;
       });
     }
 
-    if (u.photo) previewImage.src = u.photo;
+    // Photo
+    if (u.photo) {
+      previewImage.src = u.photo;
+    }
+  })
+  .catch(err => {
+    console.error("Profile load error:", err);
+    showError("Failed to load profile. Please check your connection.");
   });
 
 /* CROP IMAGE */
@@ -248,7 +310,7 @@ fileInput.addEventListener("change", e => {
   reader.readAsDataURL(file);
 });
 
-/* SAVE PROFILE (POST) */
+/* SAVE PROFILE (POST) - FIXED */
 profileForm.onsubmit = async e => {
   e.preventDefault();
 
@@ -272,33 +334,45 @@ profileForm.onsubmit = async e => {
   const hobbies = [...document.querySelectorAll("input[name='hobbies']:checked")]
         .map(cb => cb.value);
 
-  const res = await fetch("/wp-json/tossee/v1/save-profile", {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      "X-WP-Nonce": window.wpApiSettings.nonce
-    },
-    body: JSON.stringify({
-      first_name: first_name.value,
-      last_name: last_name.value,
-      gender: gender.value,
-      dob: dob.value,
-      country: country.value,
-      city: city.value,
-      about: about.value,
-      hobbies,
-      photo: finalPhoto
-    })
-  });
+  // ✅ FIXED: Handle nonce properly
+  const headers = {
+    "Content-Type": "application/json"
+  };
 
-  const json = await res.json();
+  if (window.wpApiSettings && window.wpApiSettings.nonce) {
+    headers["X-WP-Nonce"] = window.wpApiSettings.nonce;
+  }
 
-  if (json.status === "ok") {
-    window.location.href = "/my-account";
-  } else {
-    alert("Failed to save profile.");
-    console.log(json);
+  try {
+    const res = await fetch("/wp-json/tossee/v1/save-profile", {
+      method: "POST",
+      credentials: "include",
+      headers: headers,
+      body: JSON.stringify({
+        first_name: first_name.value,
+        last_name: last_name.value,
+        gender: gender.value,
+        country: country.value,
+        city: city.value,
+        about: about.value,
+        hobbies,
+        photo: finalPhoto
+      })
+    });
+
+    const json = await res.json();
+    console.log("Save response:", json);
+
+    if (json.status === "ok") {
+      alert("Profile saved successfully!");
+      window.location.href = "/profile";
+    } else {
+      showError(json.message || "Failed to save profile.");
+      console.error("Save failed:", json);
+    }
+  } catch (err) {
+    console.error("Save error:", err);
+    showError("Failed to save profile. Please try again.");
   }
 };
 </script>
