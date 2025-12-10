@@ -1,0 +1,165 @@
+<?php
+/* ================================
+   TOSSEE – LOGIN SHORTCODE
+================================ */
+
+function tossee_login_form_shortcode() {
+    ob_start();
+    ?>
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #140D42;
+    color: #fff;
+    text-align: center;
+  }
+
+  .tossee-wrap {
+    width: 460px;
+    max-width: 90%;
+    margin: 0 auto;
+    padding: 10px;
+  }
+
+  .tossee-logo {
+    width: 460px;
+    max-width: 90%;
+    height: auto;
+    margin: 30px auto 20px auto;
+    display: block;
+  }
+
+  .tossee-wrap h2 {
+    font-size: 34px;
+    margin-bottom: 20px;
+    font-weight: 800;
+    text-transform: uppercase;
+    background: linear-gradient(45deg,#a64dff,#00c6ff,#0072ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 1px;
+  }
+
+  .tossee-wrap form input,
+  .tossee-wrap form button {
+    width: 100%;
+    padding: 14px;
+    margin: 8px 0;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+  }
+
+  .tossee-wrap form input {
+    background: #fff;
+    color: #000;
+  }
+
+  .tossee-btn {
+    background: linear-gradient(45deg,#a64dff,#00c6ff,#0072ff);
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: .15s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  .tossee-btn:hover {
+    opacity: 0.95;
+    transform: translateY(-2px);
+  }
+
+  .tossee-error {
+    background: #ff4444;
+    color: #fff;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 10px 0;
+  }
+
+  .tossee-link {
+    color: #00c6ff;
+    text-decoration: none;
+    margin-top: 15px;
+    display: inline-block;
+  }
+</style>
+
+<div class="tossee-wrap">
+  <img src="https://tossee.com/wp-content/uploads/2025/09/logo.png"
+       alt="Tossee Logo"
+       class="tossee-logo">
+
+  <h2>LOGIN</h2>
+
+  <?php if ( isset( $_GET['error'] ) ) : ?>
+    <div class="tossee-error">
+      <?php
+        $error  = sanitize_text_field( $_GET['error'] );
+        $errors = array(
+          'missing_fields'      => 'Please fill in all fields.',
+          'invalid_credentials' => 'Invalid email or password.',
+          'user_blocked'        => 'Your account has been blocked.',
+        );
+        echo isset( $errors[ $error ] ) ? esc_html( $errors[ $error ] ) : 'An error occurred.';
+      ?>
+    </div>
+  <?php endif; ?>
+
+  <form id="tossee-login-form"
+        method="post"
+        action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+
+    <input type="hidden" name="action" value="tossee_custom_login">
+
+    <input type="email" name="user_email" placeholder="Email" required>
+    <input type="password" name="user_pass" placeholder="Password" required>
+
+    <button type="submit" class="tossee-btn">LOGIN</button>
+  </form>
+
+  <a href="<?php echo esc_url( home_url( '/register' ) ); ?>" class="tossee-link">Don't have an account? Register here</a>
+</div>
+
+<script>
+// Show error popup if needed
+const params = new URLSearchParams(window.location.search);
+if (params.get("error")) {
+    const errorMap = {
+        'missing_fields': 'Please fill in all fields.',
+        'invalid_credentials': 'Invalid email or password.',
+        'user_blocked': 'Your account has been blocked.'
+    };
+    const errorMsg = errorMap[params.get("error")] || 'An error occurred.';
+
+    const modalErr = document.createElement("div");
+    modalErr.style = `
+        position:fixed; top:0; left:0; width:100%; height:100%;
+        background:rgba(0,0,0,0.8); display:flex;
+        justify-content:center; align-items:center; z-index:9999;
+    `;
+    modalErr.innerHTML = `
+        <div style="
+            background:#fff; color:#000; padding:25px;
+            border-radius:12px; max-width:340px; width:90%;
+            text-align:center; font-size:18px;">
+            <h2 style="margin-bottom:10px; color:#ff4444;">Login Error</h2>
+            <p>${errorMsg}</p>
+            <button id="errBtn" style="
+                margin-top:15px; padding:10px 20px; border:none;
+                border-radius:8px; background:linear-gradient(45deg,#a64dff,#00c6ff,#0072ff);
+                color:white; cursor:pointer; font-weight:bold;">
+                OK
+            </button>
+        </div>
+    `;
+    document.body.appendChild(modalErr);
+    document.getElementById("errBtn").onclick = () => modalErr.remove();
+}
+</script>
+<?php
+    return ob_get_clean();
+}
+add_shortcode('tossee_login_form', 'tossee_login_form_shortcode');

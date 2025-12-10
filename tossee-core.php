@@ -14,4 +14,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once __DIR__ . '/database-setup.php';
 require_once __DIR__ . '/register-handler.php';
 require_once __DIR__ . '/register-form.php';
+require_once __DIR__ . '/login-handler.php';
+require_once __DIR__ . '/login-form.php';
 require_once __DIR__ . '/admin-users.php';
