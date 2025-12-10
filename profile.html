@@ -29,7 +29,7 @@
       height: 140px;
       border: 3px solid #00c6ff;
       border-radius: 50%;
-      margin: 0 0 25px 0;
+      margin: 0 auto 25px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       background: #fff;
       display: flex;
@@ -59,6 +59,36 @@
       margin-right: 6px;
       color: #a6d9ff;
     }
+    .buttons {
+      margin-top: 25px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-edit {
+      background: linear-gradient(45deg,#a64dff,#00c6ff,#0072ff);
+      color: #fff;
+    }
+    .btn-logout {
+      background: #f44336;
+      color: #fff;
+    }
+    .error-msg {
+      background: #ff4444;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 
@@ -66,6 +96,8 @@
 
 <div class="wrap">
   <h2 id="profile-title">My Profile</h2>
+
+  <div id="error-container"></div>
 
   <div class="profile-photo">
     <img id="avatar"
@@ -89,41 +121,63 @@
     <div class="field"><label>Hobbies:</label> <span id="hobbies">-</span></div>
     <div class="field"><label>About Me:</label> <span id="about">-</span></div>
   </div>
+
+  <div class="buttons">
+    <a href="/edit-profile" class="btn btn-edit">Edit Profile</a>
+    <a href="/?tossee_logout=1" class="btn btn-logout">Logout</a>
+  </div>
 </div>
 
 <script>
 async function loadProfile() {
   try {
-    // Get Tossee profile data
+    console.log("Loading Tossee profile...");
+
+    // Get ONLY Tossee profile data
     const response = await fetch("/wp-json/tossee/v1/profile", {
       credentials: "include"
     });
 
     const data = await response.json();
+    console.log("API Response:", data);
 
+    // Check if API call was successful
     if (data.status !== 'ok' || !data.user) {
       console.error("Profile load failed:", data);
-      alert("Failed to load profile. Please try logging in again.");
-      window.location.href = "/login";
+      document.getElementById("error-container").innerHTML =
+        '<div class="error-msg">Failed to load profile. Please <a href="/login" style="color:#fff;text-decoration:underline;">log in</a> again.</div>';
       return;
     }
 
     const user = data.user;
 
-    // Fill all fields from Tossee data
+    // USERNAME (from registration)
     document.getElementById("username").textContent = user.username || "-";
+
+    // EMAIL (from registration)
     document.getElementById("email").textContent = user.email || "-";
+
+    // DATE OF BIRTH (from registration - readonly)
+    document.getElementById("dob").textContent = user.dob || "-";
+
+    // Other fields
     document.getElementById("first_name").textContent = user.first_name || "-";
     document.getElementById("last_name").textContent = user.last_name || "-";
-    document.getElementById("gender").textContent = user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : "-";
-    document.getElementById("dob").textContent = user.dob || "-";
+
+    // Gender - capitalize first letter
+    const gender = user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : "-";
+    document.getElementById("gender").textContent = gender;
+
     document.getElementById("country").textContent = user.country || "-";
     document.getElementById("city").textContent = user.city || "-";
 
     // Hobbies - convert comma-separated string to readable format
     let hobbies = user.hobbies || "";
     if (hobbies) {
-      hobbies = hobbies.split(',').map(h => h.trim().charAt(0).toUpperCase() + h.trim().slice(1)).join(", ");
+      hobbies = hobbies.split(',')
+                       .map(h => h.trim())
+                       .map(h => h.charAt(0).toUpperCase() + h.slice(1))
+                       .join(", ");
     }
     document.getElementById("hobbies").textContent = hobbies || "-";
 
@@ -134,17 +188,21 @@ async function loadProfile() {
       document.getElementById("avatar").src = user.photo;
     }
 
-    // Update title
+    // Update title with full name
     const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim();
     document.getElementById("profile-title").textContent =
-      fullName ? "Profile of " + fullName : "My Profile";
+      fullName ? "Profile of " + fullName : `@${user.username}`;
+
+    console.log("Profile loaded successfully!");
 
   } catch (err) {
     console.error("Profile load error:", err);
-    alert("Failed to load profile. Please check your connection.");
+    document.getElementById("error-container").innerHTML =
+      '<div class="error-msg">Failed to load profile. Please check your connection.</div>';
   }
 }
 
+// Load profile when page loads
 loadProfile();
 </script>
 
