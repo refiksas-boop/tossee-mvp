@@ -12,38 +12,52 @@ if ( ! function_exists( 'tossee_custom_login_handler' ) ) {
         tossee_log( 'POST data: ' . print_r($_POST, true), 'info' );
         tossee_log( 'Request method: ' . $_SERVER['REQUEST_METHOD'], 'info' );
 
-        if ( empty( $_POST['user_email'] ) || empty( $_POST['user_pass'] ) ) {
+        // Support both field names: user_email OR username_or_email
+        $email_field = !empty($_POST['user_email']) ? $_POST['user_email'] :
+                       (!empty($_POST['username_or_email']) ? $_POST['username_or_email'] : '');
+
+        if ( empty( $email_field ) || empty( $_POST['user_pass'] ) ) {
             tossee_log( 'Login failed: missing fields', 'error' );
-            tossee_log( 'user_email: ' . (isset($_POST['user_email']) ? $_POST['user_email'] : 'NOT SET'), 'error' );
+            tossee_log( 'email_field: ' . ($email_field ?: 'NOT SET'), 'error' );
             tossee_log( 'user_pass: ' . (isset($_POST['user_pass']) ? 'EXISTS' : 'NOT SET'), 'error' );
             $back = wp_get_referer() ?: home_url( '/login' );
             wp_safe_redirect( add_query_arg( 'error', 'missing_fields', $back ) );
             exit;
         }
 
-        $email = sanitize_email( wp_unslash( $_POST['user_email'] ) );
+        $email_or_username = sanitize_text_field( wp_unslash( $email_field ) );
         $pass  = (string) $_POST['user_pass'];
 
-        $user = tossee_get_user_by_email( $email );
+        // Try to find user by email first, then by username
+        $user = tossee_get_user_by_email( $email_or_username );
 
         if ( ! $user ) {
-            tossee_log( "Login failed: user not found - {$email}", 'error' );
+            // Try by username
+            global $wpdb;
+            $table = $wpdb->prefix . 'tossee_users';
+            $user = $wpdb->get_row(
+                $wpdb->prepare( "SELECT * FROM $table WHERE username = %s", $email_or_username )
+            );
+        }
+
+        if ( ! $user ) {
+            tossee_log( "Login failed: user not found - {$email_or_username}", 'error' );
             $back = wp_get_referer() ?: home_url( '/login' );
-            wp_safe_redirect( add_query_arg( 'error', 'invalid_credentials', $back ) );
+            wp_safe_redirect( add_query_arg( 'error', 'notfound', $back ) );
             exit;
         }
 
         if ( ! password_verify( $pass, $user->password_hash ) ) {
-            tossee_log( "Login failed: wrong password - {$email}", 'error' );
+            tossee_log( "Login failed: wrong password - {$email_or_username}", 'error' );
             $back = wp_get_referer() ?: home_url( '/login' );
-            wp_safe_redirect( add_query_arg( 'error', 'invalid_credentials', $back ) );
+            wp_safe_redirect( add_query_arg( 'error', 'wrongpass', $back ) );
             exit;
         }
 
         // Check if user is blocked (if column exists)
         $is_blocked = isset($user->is_blocked) ? (int)$user->is_blocked : 0;
         if ( $is_blocked === 1 ) {
-            tossee_log( "Login failed: user blocked - {$email}", 'error' );
+            tossee_log( "Login failed: user blocked - {$email_or_username}", 'error' );
             $back = wp_get_referer() ?: home_url( '/login' );
             wp_safe_redirect( add_query_arg( 'error', 'user_blocked', $back ) );
             exit;
