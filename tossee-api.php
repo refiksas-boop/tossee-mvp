@@ -13,7 +13,13 @@ add_action('rest_api_init', function() {
         'permission_callback' => 'tossee_api_check_auth'
     ));
 
-    // Get profile endpoint
+    // Get profile endpoint - support both /profile and /get-profile
+    register_rest_route('tossee/v1', '/profile', array(
+        'methods' => 'GET',
+        'callback' => 'tossee_api_get_profile',
+        'permission_callback' => 'tossee_api_check_auth'
+    ));
+
     register_rest_route('tossee/v1', '/get-profile', array(
         'methods' => 'GET',
         'callback' => 'tossee_api_get_profile',
