@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test N8N Webhooks</title>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .success { background: #d4edda; color: #155724; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .error { background: #f8d7da; color: #721c24; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .info { background: #d1ecf1; color: #0c5460; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 4px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 N8N Webhook Tester</h1>
+
+    <div class="container">
+        <h2>1️⃣ Configure Webhook URLs</h2>
+        <label>Matching Webhook URL:</label>
+        <input type="text" id="matchingUrl" placeholder="https://your-n8n.app/webhook/matching">
+
+        <label>Signaling Webhook URL:</label>
+        <input type="text" id="signalingUrl" placeholder="https://your-n8n.app/webhook/signaling">
+
+        <button onclick="saveUrls()">💾 Save URLs</button>
+    </div>
+
+    <div class="container">
+        <h2>2️⃣ Test Matching Webhook</h2>
+        <button onclick="testJoinQueue()">Test 1: Join Queue</button>
+        <button onclick="testCheckStatus()">Test 2: Check Status</button>
+        <button onclick="testTwoUsers()">Test 3: Match Two Users</button>
+        <div id="matchingResults"></div>
+    </div>
+
+    <div class="container">
+        <h2>3️⃣ Test Signaling Webhook</h2>
+        <button onclick="testSignalingOffer()">Test 4: Send Offer</button>
+        <button onclick="testSignalingCheck()">Test 5: Check Signals</button>
+        <div id="signalingResults"></div>
+    </div>
+
+    <div class="container">
+        <h2>4️⃣ Test Raw Response</h2>
+        <button onclick="testRawResponse()">Test Raw HTTP Response</button>
+        <div id="rawResults"></div>
+    </div>
+
+    <script>
+        // Load saved URLs from localStorage
+        window.onload = () => {
+            const matchingUrl = localStorage.getItem('matchingUrl');
+            const signalingUrl = localStorage.getItem('signalingUrl');
+            if (matchingUrl) document.getElementById('matchingUrl').value = matchingUrl;
+            if (signalingUrl) document.getElementById('signalingUrl').value = signalingUrl;
+        };
+
+        function saveUrls() {
+            const matchingUrl = document.getElementById('matchingUrl').value;
+            const signalingUrl = document.getElementById('signalingUrl').value;
+
+            if (!matchingUrl || !signalingUrl) {
+                alert('Please enter both URLs');
+                return;
+            }
+
+            localStorage.setItem('matchingUrl', matchingUrl);
+            localStorage.setItem('signalingUrl', signalingUrl);
+            alert('✅ URLs saved!');
+        }
+
+        function getUrls() {
+            const matchingUrl = document.getElementById('matchingUrl').value || localStorage.getItem('matchingUrl');
+            const signalingUrl = document.getElementById('signalingUrl').value || localStorage.getItem('signalingUrl');
+
+            if (!matchingUrl || !signalingUrl) {
+                throw new Error('Please configure webhook URLs first');
+            }
+
+            return { matchingUrl, signalingUrl };
+        }
+
+        function displayResult(containerId, testName, success, data, error = null) {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = 'test-result';
+
+            const statusClass = success ? 'success' : 'error';
+            const statusIcon = success ? '✅' : '❌';
+
+            div.innerHTML = `
+                <div class="${statusClass}">
+                    <strong>${statusIcon} ${testName}</strong>
+                    ${error ? `<br>Error: ${error}` : ''}
+                </div>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+
+            container.insertBefore(div, container.firstChild);
+        }
+
+        async function fetchWithDebug(url, body) {
+            console.log('📤 REQUEST:', url, body);
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                console.log('📥 RESPONSE STATUS:', response.status, response.statusText);
+                console.log('📥 RESPONSE HEADERS:', [...response.headers.entries()]);
+
+                // Get response as text first to see what we're getting
+                const text = await response.text();
+                console.log('📥 RESPONSE TEXT:', text);
+
+                // Try to parse as JSON
+                if (!text || text.trim() === '') {
+                    throw new Error('Empty response from webhook');
+                }
+
+                try {
+                    const json = JSON.parse(text);
+                    console.log('📥 RESPONSE JSON:', json);
+                    return { success: true, data: json, status: response.status };
+                } catch (e) {
+                    throw new Error(`Invalid JSON: ${text.substring(0, 100)}`);
+                }
+
+            } catch (error) {
+                console.error('❌ ERROR:', error);
+                return { success: false, error: error.message, data: null };
+            }
+        }
+
+        // TEST 1: Join Queue
+        async function testJoinQueue() {
+            try {
+                const { matchingUrl } = getUrls();
+                const userId = 'test_user_' + Math.random().toString(36).substring(2, 8);
+
+                const result = await fetchWithDebug(matchingUrl, {
+                    user: userId,
+                    action: 'join'
+                });
+
+                displayResult('matchingResults', 'Test 1: Join Queue', result.success, {
+                    request: { user: userId, action: 'join' },
+                    response: result.data,
+                    expectedFields: ['ok', 'status'],
+                    validation: {
+                        hasOk: result.data?.ok !== undefined,
+                        hasStatus: result.data?.status !== undefined,
+                        isWaitingOrMatched: ['waiting', 'matched'].includes(result.data?.status)
+                    }
+                }, result.error);
+
+            } catch (error) {
+                displayResult('matchingResults', 'Test 1: Join Queue', false, null, error.message);
+            }
+        }
+
+        // TEST 2: Check Status
+        async function testCheckStatus() {
+            try {
+                const { matchingUrl } = getUrls();
+                const userId = 'test_user_' + Math.random().toString(36).substring(2, 8);
+
+                const result = await fetchWithDebug(matchingUrl, {
+                    user: userId,
+                    action: 'check'
+                });
+
+                displayResult('matchingResults', 'Test 2: Check Status', result.success, {
+                    request: { user: userId, action: 'check' },
+                    response: result.data
+                }, result.error);
+
+            } catch (error) {
+                displayResult('matchingResults', 'Test 2: Check Status', false, null, error.message);
+            }
+        }
+
+        // TEST 3: Match Two Users
+        async function testTwoUsers() {
+            try {
+                const { matchingUrl } = getUrls();
+                const user1 = 'test_user_A';
+                const user2 = 'test_user_B';
+
+                // User 1 joins
+                const result1 = await fetchWithDebug(matchingUrl, {
+                    user: user1,
+                    action: 'join'
+                });
+
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // User 2 joins (should match)
+                const result2 = await fetchWithDebug(matchingUrl, {
+                    user: user2,
+                    action: 'join'
+                });
+
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // User 1 checks (should be matched now)
+                const check1 = await fetchWithDebug(matchingUrl, {
+                    user: user1,
+                    action: 'check'
+                });
+
+                const bothMatched = result2.data?.status === 'matched' && check1.data?.status === 'matched';
+                const sameRoom = result2.data?.roomId === check1.data?.roomId;
+
+                displayResult('matchingResults', 'Test 3: Match Two Users', bothMatched && sameRoom, {
+                    user1Join: result1.data,
+                    user2Join: result2.data,
+                    user1Check: check1.data,
+                    validation: {
+                        bothMatched,
+                        sameRoom,
+                        roomId: result2.data?.roomId
+                    }
+                }, bothMatched ? null : 'Users did not match properly');
+
+            } catch (error) {
+                displayResult('matchingResults', 'Test 3: Match Two Users', false, null, error.message);
+            }
+        }
+
+        // TEST 4: Signaling Offer
+        async function testSignalingOffer() {
+            try {
+                const { signalingUrl } = getUrls();
+                const testRoomId = 'test_room_123';
+
+                const result = await fetchWithDebug(signalingUrl, {
+                    roomId: testRoomId,
+                    type: 'offer',
+                    data: { type: 'offer', sdp: 'test_sdp_data' }
+                });
+
+                displayResult('signalingResults', 'Test 4: Send Offer', result.success, {
+                    request: { roomId: testRoomId, type: 'offer' },
+                    response: result.data
+                }, result.error);
+
+            } catch (error) {
+                displayResult('signalingResults', 'Test 4: Send Offer', false, null, error.message);
+            }
+        }
+
+        // TEST 5: Check Signals
+        async function testSignalingCheck() {
+            try {
+                const { signalingUrl } = getUrls();
+                const testRoomId = 'test_room_123';
+
+                const result = await fetchWithDebug(signalingUrl, {
+                    roomId: testRoomId,
+                    type: 'check'
+                });
+
+                displayResult('signalingResults', 'Test 5: Check Signals', result.success, {
+                    request: { roomId: testRoomId, type: 'check' },
+                    response: result.data,
+                    validation: {
+                        hasRoomData: result.data?.roomData !== undefined,
+                        hasOffers: result.data?.roomData?.offers !== undefined,
+                        hasAnswers: result.data?.roomData?.answers !== undefined,
+                        hasCandidates: result.data?.roomData?.candidates !== undefined
+                    }
+                }, result.error);
+
+            } catch (error) {
+                displayResult('signalingResults', 'Test 5: Check Signals', false, null, error.message);
+            }
+        }
+
+        // TEST RAW: See exactly what the webhook returns
+        async function testRawResponse() {
+            try {
+                const { matchingUrl } = getUrls();
+                const userId = 'test_raw_' + Math.random().toString(36).substring(2, 8);
+
+                const response = await fetch(matchingUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ user: userId, action: 'join' })
+                });
+
+                const headers = {};
+                response.headers.forEach((value, key) => {
+                    headers[key] = value;
+                });
+
+                const text = await response.text();
+
+                displayResult('rawResults', 'Raw HTTP Response', true, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: headers,
+                    bodyLength: text.length,
+                    bodyPreview: text.substring(0, 500),
+                    isValidJSON: (() => {
+                        try {
+                            JSON.parse(text);
+                            return true;
+                        } catch (e) {
+                            return false;
+                        }
+                    })()
+                });
+
+            } catch (error) {
+                displayResult('rawResults', 'Raw HTTP Response', false, null, error.message);
+            }
+        }
+    </script>
+
+    <div class="container">
+        <h2>📋 Common Issues & Solutions</h2>
+        <div class="info">
+            <strong>❌ "Unexpected end of JSON input"</strong><br>
+            → Your n8n webhook is returning empty or invalid response<br>
+            → Check n8n workflow is ACTIVE and SAVED<br>
+            → Make sure "Respond to Webhook" node is connected<br><br>
+
+            <strong>❌ CORS Error</strong><br>
+            → Add "Set" node in n8n before "Respond to Webhook"<br>
+            → Set header: Access-Control-Allow-Origin = *<br><br>
+
+            <strong>❌ 404 Not Found</strong><br>
+            → Check webhook URL is correct<br>
+            → Verify workflow is active in n8n<br><br>
+
+            <strong>✅ Expected Response Format</strong><br>
+            → Matching: { "ok": true, "status": "waiting" }<br>
+            → Signaling: { "ok": true, "message": "..." }<br>
+        </div>
+    </div>
+</body>
+</html>

@@ -98,14 +98,43 @@
 
         async function fetchAPI(url, body) {
             try {
+                log(`🔄 Sending request to: ${url}`);
+                log(`📤 Request body: ${JSON.stringify(body)}`);
+
                 const response = await fetch(url, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(body)
                 });
-                return await response.json();
+
+                log(`📥 Response status: ${response.status} ${response.statusText}`);
+
+                // Get response as text first to check if it's empty
+                const text = await response.text();
+                log(`📥 Response length: ${text.length} bytes`);
+
+                if (!text || text.trim() === '') {
+                    log("❌ ERROR: Empty response from webhook!");
+                    log("💡 TIP: Check your n8n workflow:");
+                    log("   1. Is the workflow ACTIVE?");
+                    log("   2. Is 'Respond to Webhook' node connected?");
+                    log("   3. Does the workflow have any errors?");
+                    return { ok: false, error: "Empty response from webhook" };
+                }
+
+                try {
+                    const json = JSON.parse(text);
+                    log(`✅ Valid JSON received: ${JSON.stringify(json).substring(0, 100)}...`);
+                    return json;
+                } catch (parseError) {
+                    log(`❌ ERROR: Invalid JSON in response`);
+                    log(`📄 Response preview: ${text.substring(0, 200)}`);
+                    return { ok: false, error: `Invalid JSON: ${parseError.message}` };
+                }
+
             } catch (error) {
-                log("API Error: " + error.message);
+                log("❌ Network Error: " + error.message);
+                log("💡 TIP: Check your webhook URL is correct");
                 return { ok: false, error: error.message };
             }
         }
