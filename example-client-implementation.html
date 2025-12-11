@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Video Chat - Client Implementation</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        video { width: 100%; max-width: 400px; border: 2px solid #333; background: #000; }
+        .video-container { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+        button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; }
+        #status { padding: 15px; margin: 15px 0; border-radius: 5px; font-weight: bold; }
+        .waiting { background: #fff3cd; color: #856404; }
+        .matched { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Random Video Chat</h1>
+
+    <div id="status" class="waiting">Not connected</div>
+
+    <div class="video-container">
+        <div>
+            <h3>Your Video</h3>
+            <video id="localVideo" autoplay muted playsinline></video>
+        </div>
+        <div>
+            <h3>Stranger's Video</h3>
+            <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 20px;">
+        <button id="startBtn">Start Chat</button>
+        <button id="nextBtn" disabled>Next Stranger</button>
+        <button id="stopBtn" disabled>Stop</button>
+    </div>
+
+    <div id="debug" style="margin-top: 20px; padding: 10px; background: #f5f5f5; font-family: monospace; font-size: 12px;"></div>
+
+    <script>
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        const N8N_MATCHING_WEBHOOK = "YOUR_N8N_WEBHOOK_URL_HERE"; // e.g., https://your-n8n.app/webhook/matching
+        const N8N_SIGNALING_WEBHOOK = "YOUR_N8N_WEBHOOK_URL_HERE"; // e.g., https://your-n8n.app/webhook/signaling
+
+        // Generate unique user ID (in production, get from session/auth)
+        const userId = "user_" + Math.random().toString(36).substring(2, 10);
+
+        // ============================================
+        // STATE
+        // ============================================
+        let localStream = null;
+        let peerConnection = null;
+        let currentRoomId = null;
+        let pollingInterval = null;
+        let signalingInterval = null;
+        let isInitiator = false;
+
+        // ============================================
+        // DOM ELEMENTS
+        // ============================================
+        const localVideo = document.getElementById("localVideo");
+        const remoteVideo = document.getElementById("remoteVideo");
+        const startBtn = document.getElementById("startBtn");
+        const nextBtn = document.getElementById("nextBtn");
+        const stopBtn = document.getElementById("stopBtn");
+        const statusDiv = document.getElementById("status");
+        const debugDiv = document.getElementById("debug");
+
+        // ============================================
+        // WEBRTC CONFIGURATION
+        // ============================================
+        const ICE_SERVERS = {
+            iceServers: [
+                { urls: "stun:stun.l.google.com:19302" },
+                { urls: "stun:stun1.l.google.com:19302" }
+            ]
+        };
+
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+        function updateStatus(message, type = "waiting") {
+            statusDiv.textContent = message;
+            statusDiv.className = type;
+            log(message);
+        }
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            debugDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            debugDiv.scrollTop = debugDiv.scrollHeight;
+            console.log(message);
+        }
+
+        async function fetchAPI(url, body) {
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body)
+                });
+                return await response.json();
+            } catch (error) {
+                log("API Error: " + error.message);
+                return { ok: false, error: error.message };
+            }
+        }
+
+        // ============================================
+        // MATCHING LOGIC
+        // ============================================
+        async function joinQueue() {
+            updateStatus("Joining queue...", "waiting");
+            const result = await fetchAPI(N8N_MATCHING_WEBHOOK, {
+                user: userId,
+                action: "join"
+            });
+
+            if (!result.ok) {
+                updateStatus("Error: " + result.message, "error");
+                return;
+            }
+
+            if (result.status === "matched") {
+                handleMatch(result);
+            } else if (result.status === "waiting") {
+                updateStatus(`Waiting for stranger... (Position: ${result.position})`, "waiting");
+                startPolling();
+            }
+        }
+
+        function startPolling() {
+            // Poll every 2 seconds to check for match
+            pollingInterval = setInterval(async () => {
+                const result = await fetchAPI(N8N_MATCHING_WEBHOOK, {
+                    user: userId,
+                    action: "check"
+                });
+
+                if (result.status === "matched") {
+                    stopPolling();
+                    handleMatch(result);
+                } else if (result.status === "waiting") {
+                    updateStatus(`Waiting for stranger... (Position: ${result.position})`, "waiting");
+                }
+            }, 2000);
+        }
+
+        function stopPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        }
+
+        async function handleMatch(matchData) {
+            log("Match found! Room: " + matchData.roomId);
+            currentRoomId = matchData.roomId;
+
+            // Determine who initiates WebRTC connection
+            // User with "smaller" ID alphabetically becomes initiator
+            isInitiator = userId < matchData.peer;
+
+            updateStatus("Connected to stranger! Setting up video...", "matched");
+
+            // Initialize WebRTC
+            await setupWebRTC();
+
+            // Start signaling
+            startSignaling();
+
+            // Enable buttons
+            nextBtn.disabled = false;
+            stopBtn.disabled = false;
+            startBtn.disabled = true;
+        }
+
+        // ============================================
+        // WEBRTC SETUP
+        // ============================================
+        async function setupWebRTC() {
+            try {
+                // Create peer connection
+                peerConnection = new RTCPeerConnection(ICE_SERVERS);
+
+                // Add local stream tracks
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+
+                // Handle remote stream
+                peerConnection.ontrack = (event) => {
+                    log("Received remote track");
+                    remoteVideo.srcObject = event.streams[0];
+                    updateStatus("Connected! Enjoy your chat!", "matched");
+                };
+
+                // Handle ICE candidates
+                peerConnection.onicecandidate = async (event) => {
+                    if (event.candidate) {
+                        log("Sending ICE candidate");
+                        await fetchAPI(N8N_SIGNALING_WEBHOOK, {
+                            roomId: currentRoomId,
+                            type: "candidate",
+                            user: userId,
+                            data: event.candidate
+                        });
+                    }
+                };
+
+                // Connection state changes
+                peerConnection.onconnectionstatechange = () => {
+                    log("Connection state: " + peerConnection.connectionState);
+                    if (peerConnection.connectionState === "failed") {
+                        updateStatus("Connection failed. Click 'Next Stranger' to try again.", "error");
+                    }
+                };
+
+                // If initiator, create and send offer
+                if (isInitiator) {
+                    log("Creating offer (initiator)");
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+
+                    await fetchAPI(N8N_SIGNALING_WEBHOOK, {
+                        roomId: currentRoomId,
+                        type: "offer",
+                        data: offer
+                    });
+                }
+
+            } catch (error) {
+                log("WebRTC setup error: " + error.message);
+                updateStatus("Error setting up video: " + error.message, "error");
+            }
+        }
+
+        // ============================================
+        // SIGNALING LOOP
+        // ============================================
+        function startSignaling() {
+            // Poll signaling server every 1 second
+            signalingInterval = setInterval(async () => {
+                const result = await fetchAPI(N8N_SIGNALING_WEBHOOK, {
+                    roomId: currentRoomId,
+                    type: "check"
+                });
+
+                if (!result.ok || !result.roomData) return;
+
+                const { offers, answers, candidates } = result.roomData;
+
+                // Process offers (if not initiator)
+                if (!isInitiator && offers.length > 0 && peerConnection.signalingState !== "stable") {
+                    const offer = offers[offers.length - 1];
+                    log("Received offer, creating answer");
+                    await peerConnection.setRemoteDescription(offer);
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+
+                    await fetchAPI(N8N_SIGNALING_WEBHOOK, {
+                        roomId: currentRoomId,
+                        type: "answer",
+                        data: answer
+                    });
+                }
+
+                // Process answers (if initiator)
+                if (isInitiator && answers.length > 0 && peerConnection.signalingState !== "stable") {
+                    const answer = answers[answers.length - 1];
+                    log("Received answer");
+                    await peerConnection.setRemoteDescription(answer);
+                }
+
+                // Process ICE candidates
+                for (const item of candidates) {
+                    if (item.from !== userId) {
+                        try {
+                            await peerConnection.addIceCandidate(item.candidate);
+                        } catch (e) {
+                            // Ignore errors from old candidates
+                        }
+                    }
+                }
+
+            }, 1000);
+        }
+
+        function stopSignaling() {
+            if (signalingInterval) {
+                clearInterval(signalingInterval);
+                signalingInterval = null;
+            }
+        }
+
+        // ============================================
+        // DISCONNECT / CLEANUP
+        // ============================================
+        async function disconnect() {
+            // Notify server
+            if (currentRoomId) {
+                await fetchAPI(N8N_SIGNALING_WEBHOOK, {
+                    roomId: currentRoomId,
+                    type: "disconnect",
+                    user: userId
+                });
+            }
+
+            // Stop signaling
+            stopSignaling();
+            stopPolling();
+
+            // Close WebRTC
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+
+            // Clear remote video
+            remoteVideo.srcObject = null;
+
+            currentRoomId = null;
+            isInitiator = false;
+        }
+
+        // ============================================
+        // BUTTON HANDLERS
+        // ============================================
+        startBtn.onclick = async () => {
+            try {
+                // Get user media
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+                localVideo.srcObject = localStream;
+
+                // Join queue
+                await joinQueue();
+
+            } catch (error) {
+                updateStatus("Camera/microphone access denied: " + error.message, "error");
+            }
+        };
+
+        nextBtn.onclick = async () => {
+            await disconnect();
+            updateStatus("Finding next stranger...", "waiting");
+            await joinQueue();
+        };
+
+        stopBtn.onclick = async () => {
+            await disconnect();
+
+            // Stop local stream
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+                localVideo.srcObject = null;
+            }
+
+            updateStatus("Stopped", "waiting");
+            startBtn.disabled = false;
+            nextBtn.disabled = true;
+            stopBtn.disabled = true;
+        };
+
+        // ============================================
+        // CLEANUP ON PAGE UNLOAD
+        // ============================================
+        window.addEventListener("beforeunload", () => {
+            disconnect();
+        });
+    </script>
+</body>
+</html>
