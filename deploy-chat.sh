@@ -7,7 +7,7 @@ echo "🚀 Deploying chat.tossee.com..."
 
 # Define paths
 SOURCE_DIR="./chat.tossee.com"
-DEST_DIR="/var/www/chat.tossee.com"
+DEST_DIR="/var/www/tossee/chat"
 
 # Create destination directories if they don't exist
 echo "📁 Creating directories..."
