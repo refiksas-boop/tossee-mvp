@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test n8n Matching Integration</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4EC9B0;
+        }
+        .test-section {
+            background: #252526;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            border: 1px solid #3e3e42;
+        }
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        button:hover {
+            background: #1177bb;
+        }
+        .output {
+            background: #1e1e1e;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 3px;
+            border: 1px solid #3e3e42;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .success { color: #4EC9B0; }
+        .error { color: #f48771; }
+        .info { color: #569cd6; }
+        input {
+            background: #3c3c3c;
+            border: 1px solid #3e3e42;
+            color: #d4d4d4;
+            padding: 8px;
+            margin: 5px;
+            border-radius: 3px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test n8n Matching Integration</h1>
+
+        <div class="test-section">
+            <h2>Configuration</h2>
+            <label>User ID: <input type="text" id="userId" value="test_user_123"></label><br>
+            <label>Endpoint: <input type="text" id="endpoint" value="/chat/matching.php" style="width: 400px;"></label>
+        </div>
+
+        <div class="test-section">
+            <h2>Test Actions</h2>
+            <button onclick="testJoin()">JOIN Queue</button>
+            <button onclick="testCheck()">CHECK Status</button>
+            <button onclick="testDirect()">Test Direct n8n</button>
+            <button onclick="clearOutput()">Clear Output</button>
+        </div>
+
+        <div class="test-section">
+            <h2>Output</h2>
+            <div class="output" id="output">Click a button to start testing...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>Instructions</h2>
+            <ol>
+                <li>Make sure matching.php is deployed to /chat/matching.php on the server</li>
+                <li>Open this page in two browser windows with different user IDs</li>
+                <li>Click "JOIN Queue" in both windows</li>
+                <li>You should see a match when the second user joins</li>
+                <li>Check server logs for detailed debugging info</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            output.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+        }
+
+        async function testJoin() {
+            const userId = document.getElementById('userId').value;
+            const endpoint = document.getElementById('endpoint').value;
+
+            log(`Sending JOIN request for user: ${userId}`, 'info');
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'join',
+                        userId: userId,
+                        timestamp: Date.now()
+                    })
+                });
+
+                log(`Response status: ${response.status} ${response.statusText}`,
+                    response.ok ? 'success' : 'error');
+
+                const data = await response.json();
+                log('Response data:', 'info');
+                log(JSON.stringify(data, null, 2), 'info');
+
+                if (data.ok && data.status === 'matched') {
+                    log(`✅ MATCHED! Room: ${data.roomId}, Partner: ${data.partnerId}`, 'success');
+                } else if (data.status === 'waiting') {
+                    log(`⏳ Waiting in queue... (Queue size: ${data.queueSize})`, 'info');
+                } else {
+                    log(`⚠️ Unexpected response`, 'error');
+                }
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+
+        async function testCheck() {
+            const userId = document.getElementById('userId').value;
+            const endpoint = document.getElementById('endpoint').value;
+
+            log(`Sending CHECK request for user: ${userId}`, 'info');
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'check',
+                        userId: userId,
+                        timestamp: Date.now()
+                    })
+                });
+
+                log(`Response status: ${response.status} ${response.statusText}`,
+                    response.ok ? 'success' : 'error');
+
+                const data = await response.json();
+                log('Response data:', 'info');
+                log(JSON.stringify(data, null, 2), 'info');
+
+                if (data.ok && data.status === 'matched') {
+                    log(`✅ Already matched! Room: ${data.roomId}`, 'success');
+                } else if (data.status === 'waiting') {
+                    log(`⏳ In queue (Queue size: ${data.queueSize})`, 'info');
+                } else if (data.status === 'not_in_queue') {
+                    log(`ℹ️ Not in queue. Use JOIN to enter.`, 'info');
+                } else {
+                    log(`⚠️ Unexpected response`, 'error');
+                }
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+
+        async function testDirect() {
+            const userId = document.getElementById('userId').value;
+
+            log(`Testing DIRECT connection to n8n (bypassing PHP proxy)`, 'info');
+
+            try {
+                const response = await fetch('https://n8n.tossee.com/webhook/next', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'join',
+                        userId: userId,
+                        timestamp: Date.now()
+                    })
+                });
+
+                log(`Response status: ${response.status} ${response.statusText}`,
+                    response.ok ? 'success' : 'error');
+
+                const data = await response.json();
+                log('Direct n8n response:', 'success');
+                log(JSON.stringify(data, null, 2), 'info');
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                log(`This is expected if CORS is not configured on n8n`, 'info');
+                console.error('Full error:', error);
+            }
+        }
+
+        // Auto-generate random user ID on load
+        window.addEventListener('load', () => {
+            const randomId = 'test_user_' + Math.random().toString(36).substring(2, 8);
+            document.getElementById('userId').value = randomId;
+            log('Test page loaded. Random user ID generated: ' + randomId, 'success');
+        });
+    </script>
+</body>
+</html>

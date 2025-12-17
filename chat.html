@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tossee - Random Video Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .user-info {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .video-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .video-wrapper {
+            position: relative;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .video-label {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 193, 7, 0.9);
+            color: #000;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-badge.connected {
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+        }
+
+        .status-badge.searching {
+            background: rgba(33, 150, 243, 0.9);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .controls {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #9E9E9E;
+            color: white;
+        }
+
+        .btn-info {
+            background: #2196F3;
+            color: white;
+        }
+
+        .waiting-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .waiting-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .video-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .error-message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #f44336;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 5px;
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🎥 Tossee</div>
+        <div class="user-info">
+            <span id="username">Loading...</span>
+            <a href="/profile.html" style="color: white; text-decoration: none;">Profile</a>
+            <a href="/?tossee_logout=1" style="color: white; text-decoration: none;">Logout</a>
+        </div>
+    </div>
+
+    <div class="video-container">
+        <div class="video-wrapper">
+            <video id="localVideo" autoplay muted playsinline></video>
+            <div class="video-label">You</div>
+            <div class="status-badge" id="localStatus">Ready</div>
+        </div>
+
+        <div class="video-wrapper">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <div class="video-label">Stranger</div>
+            <div class="status-badge searching" id="remoteStatus">Searching...</div>
+            <div class="waiting-message" id="waitingMessage">
+                <div class="waiting-spinner"></div>
+                <p>Looking for someone to chat with...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-primary" id="startBtn">
+            <span>▶</span> Start Chat
+        </button>
+        <button class="btn btn-info" id="nextBtn" style="display: none;">
+            <span>⏭</span> Next
+        </button>
+        <button class="btn btn-secondary" id="muteBtn" disabled>
+            <span>🔊</span> Mute
+        </button>
+        <button class="btn btn-secondary" id="videoBtn" disabled>
+            <span>📹</span> Stop Video
+        </button>
+        <button class="btn btn-danger" id="stopBtn" style="display: none;">
+            <span>⏹</span> Stop
+        </button>
+    </div>
+
+    <div class="error-message" id="errorMessage"></div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            matchingEndpoint: '/chat/matching.php',
+            signalingEndpoint: '/chat/signaling.php',
+            pollInterval: 2000, // Poll for matches every 2 seconds
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+
+        // Get user ID from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('uid');
+
+        if (!userId) {
+            showError('User ID not found. Please login again.');
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 3000);
+        }
+
+        // Global state
+        let localStream = null;
+        let remoteStream = null;
+        let peerConnection = null;
+        let matchPollInterval = null;
+        let isSearching = false;
+        let currentMatchId = null;
+
+        // DOM elements
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+        const startBtn = document.getElementById('startBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const muteBtn = document.getElementById('muteBtn');
+        const videoBtn = document.getElementById('videoBtn');
+        const waitingMessage = document.getElementById('waitingMessage');
+        const localStatus = document.getElementById('localStatus');
+        const remoteStatus = document.getElementById('remoteStatus');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUserInfo();
+        });
+
+        // Load user info
+        async function loadUserInfo() {
+            document.getElementById('username').textContent = userId;
+        }
+
+        // Start chat
+        startBtn.addEventListener('click', async () => {
+            try {
+                await initLocalStream();
+                await startMatching();
+
+                startBtn.style.display = 'none';
+                nextBtn.style.display = 'inline-flex';
+                stopBtn.style.display = 'inline-flex';
+                muteBtn.disabled = false;
+                videoBtn.disabled = false;
+            } catch (error) {
+                showError('Failed to start chat: ' + error.message);
+            }
+        });
+
+        // Initialize local stream
+        async function initLocalStream() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+
+                localVideo.srcObject = localStream;
+                localStatus.textContent = 'Ready';
+                localStatus.classList.remove('searching');
+            } catch (error) {
+                throw new Error('Camera/microphone access denied');
+            }
+        }
+
+        // Start matching
+        async function startMatching() {
+            isSearching = true;
+            waitingMessage.style.display = 'block';
+            remoteStatus.textContent = 'Searching...';
+            remoteStatus.classList.add('searching');
+
+            // Poll for matches
+            matchPollInterval = setInterval(pollForMatch, CONFIG.pollInterval);
+        }
+
+        // Poll for match
+        async function pollForMatch() {
+            if (!isSearching) return;
+
+            try {
+                // First poll: use "join" action to enter queue
+                // Subsequent polls: use "check" action to check status
+                const action = matchPollInterval ? 'check' : 'join';
+
+                const response = await fetch(CONFIG.matchingEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: action,
+                        userId: userId,
+                        timestamp: Date.now()
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+
+                const data = await response.json();
+                console.log('Matching response:', data);
+
+                // Check if matched
+                if (data.ok && data.status === 'matched') {
+                    clearInterval(matchPollInterval);
+                    currentMatchId = data.partnerId;
+                    await startWebRTCConnection(data);
+                } else if (data.status === 'waiting') {
+                    // Still waiting, continue polling
+                    console.log('Waiting for match... Queue size:', data.queueSize);
+                } else if (data.status === 'not_in_queue') {
+                    // Need to join queue
+                    console.log('Not in queue, sending join request...');
+                    await joinQueue();
+                }
+            } catch (error) {
+                console.error('Matching error:', error);
+            }
+        }
+
+        // Join the matching queue
+        async function joinQueue() {
+            try {
+                const response = await fetch(CONFIG.matchingEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'join',
+                        userId: userId,
+                        timestamp: Date.now()
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Join queue response:', data);
+
+                // Check if we got matched immediately
+                if (data.ok && data.status === 'matched') {
+                    clearInterval(matchPollInterval);
+                    currentMatchId = data.partnerId;
+                    await startWebRTCConnection(data);
+                }
+            } catch (error) {
+                console.error('Join queue error:', error);
+            }
+        }
+
+        // Start WebRTC connection
+        async function startWebRTCConnection(matchData) {
+            isSearching = false;
+            waitingMessage.style.display = 'none';
+            remoteStatus.textContent = 'Connecting...';
+
+            // Create peer connection
+            peerConnection = new RTCPeerConnection({
+                iceServers: CONFIG.iceServers
+            });
+
+            // Add local stream to peer connection
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+
+            // Handle remote stream
+            peerConnection.ontrack = (event) => {
+                if (!remoteStream) {
+                    remoteStream = new MediaStream();
+                    remoteVideo.srcObject = remoteStream;
+                }
+                remoteStream.addTrack(event.track);
+                remoteStatus.textContent = 'Connected';
+                remoteStatus.classList.remove('searching');
+                remoteStatus.classList.add('connected');
+            };
+
+            // Handle ICE candidates
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    sendSignal({
+                        type: 'ice-candidate',
+                        candidate: event.candidate,
+                        target_id: currentMatchId
+                    });
+                }
+            };
+
+            // Handle connection state changes
+            peerConnection.onconnectionstatechange = () => {
+                console.log('Connection state:', peerConnection.connectionState);
+
+                if (peerConnection.connectionState === 'disconnected' ||
+                    peerConnection.connectionState === 'failed') {
+                    handleDisconnect();
+                }
+            };
+
+            // Create and send offer if initiator
+            if (matchData.initiator) {
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                sendSignal({
+                    type: 'offer',
+                    offer: offer,
+                    target_id: currentMatchId
+                });
+            }
+
+            // Start polling for signaling messages
+            startSignalingPoll();
+        }
+
+        // Send signaling message
+        async function sendSignal(data) {
+            try {
+                await fetch(CONFIG.signalingEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        ...data,
+                        user_id: userId
+                    })
+                });
+            } catch (error) {
+                console.error('Signaling error:', error);
+            }
+        }
+
+        // Start signaling poll
+        function startSignalingPoll() {
+            // This would poll for incoming signals
+            // In a production app, you'd use WebSockets for real-time signaling
+            // For MVP, this can be implemented with long-polling or SSE
+        }
+
+        // Handle disconnect
+        function handleDisconnect() {
+            if (remoteStream) {
+                remoteStream.getTracks().forEach(track => track.stop());
+                remoteStream = null;
+            }
+
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+
+            remoteVideo.srcObject = null;
+            currentMatchId = null;
+
+            remoteStatus.textContent = 'Disconnected';
+            remoteStatus.classList.remove('connected');
+
+            // Automatically search for next match
+            setTimeout(() => {
+                startMatching();
+            }, 1000);
+        }
+
+        // Next button - find new match
+        nextBtn.addEventListener('click', () => {
+            handleDisconnect();
+            startMatching();
+        });
+
+        // Stop button
+        stopBtn.addEventListener('click', () => {
+            stopChat();
+        });
+
+        // Stop chat completely
+        function stopChat() {
+            if (matchPollInterval) {
+                clearInterval(matchPollInterval);
+            }
+
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+
+            handleDisconnect();
+
+            startBtn.style.display = 'inline-flex';
+            nextBtn.style.display = 'none';
+            stopBtn.style.display = 'none';
+            muteBtn.disabled = true;
+            videoBtn.disabled = true;
+
+            localVideo.srcObject = null;
+            localStatus.textContent = 'Stopped';
+        }
+
+        // Mute/unmute audio
+        muteBtn.addEventListener('click', () => {
+            if (!localStream) return;
+
+            const audioTrack = localStream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = !audioTrack.enabled;
+                muteBtn.innerHTML = audioTrack.enabled ?
+                    '<span>🔊</span> Mute' :
+                    '<span>🔇</span> Unmute';
+            }
+        });
+
+        // Toggle video
+        videoBtn.addEventListener('click', () => {
+            if (!localStream) return;
+
+            const videoTrack = localStream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.enabled = !videoTrack.enabled;
+                videoBtn.innerHTML = videoTrack.enabled ?
+                    '<span>📹</span> Stop Video' :
+                    '<span>📹</span> Start Video';
+            }
+        });
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            stopChat();
+        });
+    </script>
+</body>
+</html>
