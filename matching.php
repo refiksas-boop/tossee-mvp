@@ -25,6 +25,13 @@ if (!session_id()) {
     @session_start();
 }
 
+// Helper function for sanitizing text (in case WordPress is not fully loaded)
+if (!function_exists('sanitize_text_field')) {
+    function sanitize_text_field($str) {
+        return strip_tags(trim((string)$str));
+    }
+}
+
 // Allow both GET and POST for testing
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);

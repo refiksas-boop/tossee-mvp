@@ -10,6 +10,13 @@ if (!session_id()) {
     session_start();
 }
 
+// Helper function for sanitizing text (in case WordPress is not fully loaded)
+if (!function_exists('sanitize_text_field')) {
+    function sanitize_text_field($str) {
+        return strip_tags(trim((string)$str));
+    }
+}
+
 // CORS Headers
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
