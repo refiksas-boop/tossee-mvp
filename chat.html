@@ -275,6 +275,7 @@
         let matchPollInterval = null;
         let isSearching = false;
         let currentMatchId = null;
+        let hasJoinedQueue = false;
 
         // DOM elements
         const localVideo = document.getElementById('localVideo');
@@ -333,11 +334,15 @@
         // Start matching
         async function startMatching() {
             isSearching = true;
+            hasJoinedQueue = false;
             waitingMessage.style.display = 'block';
             remoteStatus.textContent = 'Searching...';
             remoteStatus.classList.add('searching');
 
-            // Poll for matches
+            // Join queue immediately
+            await pollForMatch();
+
+            // Then poll for matches
             matchPollInterval = setInterval(pollForMatch, CONFIG.pollInterval);
         }
 
@@ -348,7 +353,7 @@
             try {
                 // First poll: use "join" action to enter queue
                 // Subsequent polls: use "check" action to check status
-                const action = matchPollInterval ? 'check' : 'join';
+                const action = hasJoinedQueue ? 'check' : 'join';
 
                 const response = await fetch(CONFIG.matchingEndpoint, {
                     method: 'POST',
@@ -368,6 +373,11 @@
 
                 const data = await response.json();
                 console.log('Matching response:', data);
+
+                // Mark as joined if join was successful
+                if (action === 'join' && data.ok) {
+                    hasJoinedQueue = true;
+                }
 
                 // Check if matched
                 if (data.ok && data.status === 'matched') {
