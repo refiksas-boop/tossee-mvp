@@ -39,8 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'GET
     exit;
 }
 
-// n8n webhook URL
-$n8n_webhook_url = 'https://n8n.tossee.com/webhook/next';
+// Queue Manager URL (local PHP with MySQL)
+$n8n_webhook_url = 'https://tossee.com/chat/api/queue-manager.php';
 
 try {
     // Determine user ID
