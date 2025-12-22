@@ -103,26 +103,38 @@ $wpdb->query($wpdb->prepare(
 // Log request
 error_log("[Tossee Queue] Action: $action | UserId: $userId");
 
-// Check if user is already in a room
-$room = $wpdb->get_row($wpdb->prepare(
-    "SELECT * FROM $rooms_table WHERE user1_id = %s OR user2_id = %s LIMIT 1",
-    $userId,
-    $userId
-));
+// For 'join' action, always clean up old rooms first to start fresh
+if ($action === 'join') {
+    $deleted = $wpdb->delete($rooms_table, ['user1_id' => $userId], ['%s']);
+    $deleted += $wpdb->delete($rooms_table, ['user2_id' => $userId], ['%s']);
 
-if ($room) {
-    $partnerId = ($room->user1_id === $userId) ? $room->user2_id : $room->user1_id;
+    if ($deleted > 0) {
+        error_log("[Tossee Queue] Deleted $deleted old room(s) for user $userId");
+    }
+}
 
-    error_log("[Tossee Queue] User $userId already in room: $room->room_id");
+// Check if user is already in a room (only for 'check' action)
+if ($action === 'check') {
+    $room = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $rooms_table WHERE user1_id = %s OR user2_id = %s LIMIT 1",
+        $userId,
+        $userId
+    ));
 
-    echo json_encode([
-        'ok' => true,
-        'status' => 'matched',
-        'roomId' => $room->room_id,
-        'partnerId' => $partnerId,
-        'users' => [$room->user1_id, $room->user2_id]
-    ]);
-    exit;
+    if ($room) {
+        $partnerId = ($room->user1_id === $userId) ? $room->user2_id : $room->user1_id;
+
+        error_log("[Tossee Queue] User $userId already in room: $room->room_id");
+
+        echo json_encode([
+            'ok' => true,
+            'status' => 'matched',
+            'roomId' => $room->room_id,
+            'partnerId' => $partnerId,
+            'users' => [$room->user1_id, $room->user2_id]
+        ]);
+        exit;
+    }
 }
 
 //

@@ -609,6 +609,13 @@
 
             remoteVideo.srcObject = null;
             currentMatchId = null;
+            currentRoomId = null;  // Clear room ID to prevent old room reuse
+
+            // Clear signaling poll
+            if (signalingPollInterval) {
+                clearInterval(signalingPollInterval);
+                signalingPollInterval = null;
+            }
 
             remoteStatus.textContent = 'Disconnected';
             remoteStatus.classList.remove('connected');
