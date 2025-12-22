@@ -275,6 +275,7 @@
         let matchPollInterval = null;
         let isSearching = false;
         let currentMatchId = null;
+        let currentRoomId = null;
         let hasJoinedQueue = false;
 
         // DOM elements
@@ -432,6 +433,10 @@
             waitingMessage.style.display = 'none';
             remoteStatus.textContent = 'Connecting...';
 
+            // Set current room ID for signaling
+            currentRoomId = matchData.roomId;
+            console.log('[MATCH] Room ID:', currentRoomId, '| Partner:', matchData.partnerId);
+
             // Create peer connection
             peerConnection = new RTCPeerConnection({
                 iceServers: CONFIG.iceServers
@@ -494,15 +499,21 @@
         // Send signaling message
         async function sendSignal(data) {
             try {
+                const payload = {
+                    ...data,
+                    roomId: currentRoomId,
+                    userId: userId,
+                    user_id: userId  // Legacy support
+                };
+
+                console.log('[SIGNAL] Sent:', data.type);
+
                 await fetch(CONFIG.signalingEndpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        ...data,
-                        user_id: userId
-                    })
+                    body: JSON.stringify(payload)
                 });
             } catch (error) {
                 console.error('Signaling error:', error);
@@ -510,10 +521,78 @@
         }
 
         // Start signaling poll
+        let signalingPollInterval = null;
+
         function startSignalingPoll() {
-            // This would poll for incoming signals
-            // In a production app, you'd use WebSockets for real-time signaling
-            // For MVP, this can be implemented with long-polling or SSE
+            if (signalingPollInterval) {
+                clearInterval(signalingPollInterval);
+            }
+
+            // Poll immediately
+            pollSignals();
+
+            // Then poll every 2 seconds
+            signalingPollInterval = setInterval(pollSignals, 2000);
+        }
+
+        async function pollSignals() {
+            if (!peerConnection || !currentRoomId) return;
+
+            try {
+                const response = await fetch(CONFIG.signalingEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        roomId: currentRoomId,
+                        userId: userId,
+                        type: 'poll'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!data.ok || !data.roomData) return;
+
+                const room = data.roomData;
+
+                // Process offers (if we're the receiver)
+                if (!peerConnection.currentRemoteDescription && room.offers && room.offers.length > 0) {
+                    const offer = room.offers[room.offers.length - 1];
+                    console.log('[SIGNAL] Received: offer');
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+
+                    sendSignal({
+                        type: 'answer',
+                        answer: answer
+                    });
+                }
+
+                // Process answers (if we're the caller)
+                if (room.answers && room.answers.length > 0 && peerConnection.signalingState === 'have-local-offer') {
+                    const answer = room.answers[room.answers.length - 1];
+                    console.log('[SIGNAL] Received: answer');
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                }
+
+                // Process ICE candidates
+                if (room.candidates && room.candidates.length > 0) {
+                    for (const candidate of room.candidates) {
+                        try {
+                            await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                            console.log('[ICE] Received candidate');
+                        } catch (e) {
+                            console.warn('[ICE] Error adding candidate:', e);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('[SIGNAL] Poll error:', error);
+            }
         }
 
         // Handle disconnect
