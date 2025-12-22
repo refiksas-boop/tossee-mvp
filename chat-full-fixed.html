@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Tossee Chat</title>
+
+  <style>
+    :root {
+      --header-h: 60px;
+      --accent: #140d42;
+      --chat-bg: #140d42;
+      --bg: #0a0033;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      height: var(--header-h);
+      background: var(--accent);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      z-index: 1200;
+    }
+    .logo img { height: 40px; display:block; }
+
+    .right-icon {
+      position: absolute;
+      top: 50%;
+      right: 15px;
+      transform: translateY(-50%);
+      font-size: 22px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .video-wrapper {
+      position: relative;
+      flex: 1;
+      background: black;
+      overflow: hidden;
+    }
+    #remoteVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: black;
+      display: block;
+    }
+
+    #localVideoWrapper {
+      position: absolute;
+      width: 25%;
+      max-width: 320px;
+      aspect-ratio: 16/9;
+      bottom: 15px;
+      right: 15px;
+      border-radius: 10px;
+      border: 2px solid #fff;
+      background: #222;
+      cursor: move;
+      z-index: 1600;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    @media (max-width: 480px) {
+      #localVideoWrapper {
+        width: 40%;
+        max-width: 220px;
+        bottom: 12px;
+        right: 12px;
+      }
+    }
+
+    #localVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      border-radius: 8px;
+      background: #111;
+      pointer-events: none;
+    }
+
+    #localVideo::-webkit-media-controls,
+    #localVideo::-webkit-media-controls-enclosure,
+    #localVideo::-webkit-media-controls-overlay-play-button,
+    #localVideo::-webkit-media-controls-start-playback-button,
+    #localVideo::-webkit-media-controls-panel {
+      display: none !important;
+      -webkit-appearance: none;
+    }
+
+    .video-controls {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 1700;
+      pointer-events: none;
+    }
+    .icon-btn {
+      pointer-events: auto;
+      background: rgba(0,0,0,0.6);
+      border: none;
+      font-size: 18px;
+      color: white;
+      cursor: pointer;
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .icon-btn.off::before,
+    .icon-btn.off::after {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 2px;
+      background: red;
+      top: 50%;
+      left: 50%;
+      transform-origin: center;
+    }
+    .icon-btn.off::before { transform: translate(-50%, -50%) rotate(45deg); }
+    .icon-btn.off::after  { transform: translate(-50%, -50%) rotate(-45deg); }
+
+    /* Menu */
+    .menu-sidebar {
+      position: fixed;
+      top: var(--header-h);
+      right: -240px;
+      width: 220px;
+      height: calc(100% - var(--header-h));
+      padding: 8px;
+      transition: right 0.28s ease;
+      z-index: 1400;
+      overflow-y: auto;
+      text-align: right;
+      pointer-events: none;
+      background: none;
+    }
+    .menu-sidebar.active { right: 0; pointer-events: auto; }
+    .menu-sidebar a {
+      display:block; color:#fff; text-decoration:none; padding:10px 6px;
+    }
+    .menu-sidebar a:hover { color: #00c6ff; }
+
+    /* Chat */
+    .chat-area {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      max-height: 40%;
+      background: transparent;
+      z-index: 900;
+      transition: transform 0.4s ease;
+    }
+    .chat-area.hidden .messages,
+    .chat-area.hidden .input-area {
+      display: none;
+    }
+
+    .messages {
+      flex:1;
+      padding:10px;
+      overflow-y:auto;
+      max-height: 5.5em;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 8px 8px 0 0;
+    }
+    .message {
+      margin-bottom:10px;
+      color:#fff;
+      font-size:15px;
+      line-height:1.4em;
+    }
+    .message.me {
+      text-align: right;
+      color: #4fc3f7;
+    }
+    .message.partner {
+      text-align: left;
+      color: #fff;
+    }
+
+    .input-area {
+      padding:8px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      background: rgba(0, 0, 0, 0.7);
+    }
+    .action-buttons {
+      display:flex;
+      gap:10px;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+    .action-buttons button {
+      border:none;
+      border-radius:20px;
+      padding:6px 12px;
+      cursor:pointer;
+      font-size:14px;
+      font-weight:bold;
+    }
+    .emoji-btn{ background:#444; color:#fff; }
+    .next-btn{ background:#555; color:#fff; }
+    .report-btn{ background:red; color:#fff; }
+    .toggle-chat-btn{ background:#333; color:#fff; }
+
+    .input-box {
+      display:flex; gap:8px;
+    }
+    textarea {
+      flex:1; border-radius:20px; border:none; background:#fff; color:#000;
+      outline:none; resize:none; padding:8px;
+      min-height:32px; max-height:100px;
+    }
+    .send-btn {
+      border:none; border-radius:50%; padding:8px; font-size:16px;
+      cursor:pointer; background:#007bff; color:#fff;
+    }
+
+    /* Status Box */
+    .status-box {
+      position: fixed;
+      bottom: 80px;
+      right: 16px;
+      background: #2563eb;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 9999;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo"><img src="logo.png" alt="Tossee Logo"></div>
+  <span class="right-icon" id="menuToggle">☰</span>
+</header>
+
+<div class="video-wrapper">
+  <video id="remoteVideo" autoplay playsinline></video>
+
+  <div id="localVideoWrapper">
+    <video id="localVideo" autoplay playsinline muted></video>
+    <div class="video-controls">
+      <button id="toggleCamera" class="icon-btn" title="Toggle camera">📷</button>
+      <button id="toggleMic" class="icon-btn" title="Toggle mic">🎤</button>
+    </div>
+  </div>
+</div>
+
+<div class="menu-sidebar" id="menuSidebar">
+  <a href="https://tossee.com/my-account">My Account</a>
+  <a href="https://tossee.com/pricing-plans">Pricing Plans</a>
+
+  <div class="submenu">
+    <a href="#" id="policiesToggle">Policies ▼</a>
+    <div class="submenu-items" id="policiesMenu" style="display:none">
+      <a href="https://tossee.com/cookie-policy">Cookie Policy</a>
+      <a href="https://tossee.com/privacy-policy-2">Privacy Policy</a>
+      <a href="https://tossee.com/terms-of-use">Terms of Use</a>
+    </div>
+  </div>
+
+  <a href="https://tossee.com/contact">Contact</a>
+  <a href="https://tossee.com/?tossee_logout=1">Logout</a>
+</div>
+
+<div id="chatArea" class="chat-area">
+  <div class="messages" id="messages"></div>
+
+  <div class="input-area">
+    <div class="action-buttons">
+      <button class="emoji-btn">😊</button>
+      <button class="next-btn" id="nextBtn">➡ Next</button>
+      <button class="report-btn">Report</button>
+      <button class="toggle-chat-btn" id="toggleChat">💬</button>
+    </div>
+
+    <div class="input-box">
+      <textarea id="chatInput" placeholder="Type a message..."></textarea>
+      <button class="send-btn" id="sendBtn">➤</button>
+    </div>
+  </div>
+</div>
+
+<div id="statusBox" class="status-box" style="display:none;"></div>
+
+<script>
+// ================================================================
+// UI CONTROLS
+// ================================================================
+const menuToggle = document.getElementById("menuToggle");
+const menuSidebar = document.getElementById("menuSidebar");
+menuToggle.addEventListener("click", () => menuSidebar.classList.toggle("active"));
+
+const policiesToggle = document.getElementById("policiesToggle");
+const policiesMenu = document.getElementById("policiesMenu");
+policiesToggle.addEventListener("click", e => {
+  e.preventDefault();
+  policiesMenu.style.display = (policiesMenu.style.display === "block") ? "none" : "block";
+});
+
+const localVideoWrapper = document.getElementById("localVideoWrapper");
+const localVideo = document.getElementById("localVideo");
+const remoteVideo = document.getElementById("remoteVideo");
+const cameraBtn = document.getElementById("toggleCamera");
+const micBtn = document.getElementById("toggleMic");
+const chatArea = document.getElementById("chatArea");
+const toggleChat = document.getElementById("toggleChat");
+const sendBtn = document.getElementById("sendBtn");
+const chatInput = document.getElementById("chatInput");
+const messages = document.getElementById("messages");
+const nextBtn = document.getElementById("nextBtn");
+const statusBox = document.getElementById("statusBox");
+
+// ================================================================
+// USER ID from URL
+// ================================================================
+const params = new URLSearchParams(window.location.search);
+const userId = params.get("uid");
+
+if (!userId) {
+  alert("User not authorized. Missing uid.");
+  window.location.href = "https://tossee.com/login";
+}
+
+console.log("[USER ID]", userId);
+
+// ================================================================
+// STATUS BOX
+// ================================================================
+function showStatus(text) {
+  statusBox.textContent = text;
+  statusBox.style.display = "block";
+}
+
+function hideStatus() {
+  statusBox.style.display = "none";
+}
+
+// ================================================================
+// LOCAL STREAM SETUP
+// ================================================================
+let localStream = null;
+
+async function startLocalVideo() {
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    localVideo.srcObject = localStream;
+    console.log("[LOCAL VIDEO] Started");
+  } catch (err) {
+    console.error('[LOCAL VIDEO] Error:', err);
+    showStatus("Camera/Mic access denied!");
+  }
+}
+
+// Start immediately
+startLocalVideo();
+
+// ================================================================
+// CAMERA/MIC TOGGLE
+// ================================================================
+cameraBtn.addEventListener("click", () => {
+  if (!localStream) return;
+  const track = localStream.getVideoTracks()[0];
+  track.enabled = !track.enabled;
+  cameraBtn.classList.toggle("off", !track.enabled);
+  localVideo.style.filter = track.enabled ? "none" : "brightness(0.2)";
+});
+
+micBtn.addEventListener("click", () => {
+  if (!localStream) return;
+  const track = localStream.getAudioTracks()[0];
+  track.enabled = !track.enabled;
+  micBtn.classList.toggle("off", !track.enabled);
+});
+
+// ================================================================
+// CHAT - WITH DATA CHANNEL
+// ================================================================
+let dataChannel = null;
+
+sendBtn.addEventListener("click", sendMessage);
+chatInput.addEventListener("keypress", e => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+
+  // Display in UI (my message)
+  addMessageToUI(text, 'me');
+
+  // Send via data channel
+  if (dataChannel && dataChannel.readyState === 'open') {
+    dataChannel.send(JSON.stringify({
+      type: 'message',
+      text: text,
+      from: userId,
+      timestamp: Date.now()
+    }));
+    console.log("[CHAT] Sent message:", text);
+  } else {
+    console.warn("[CHAT] Data channel not ready!");
+    addMessageToUI("(Message not sent - no connection)", 'system');
+  }
+
+  chatInput.value = "";
+}
+
+function addMessageToUI(text, sender) {
+  const msg = document.createElement("div");
+  msg.className = "message " + sender;
+  msg.textContent = text;
+  messages.appendChild(msg);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+toggleChat.addEventListener("click", () => chatArea.classList.toggle("hidden"));
+
+// ================================================================
+// DRAGGABLE PIP
+// ================================================================
+(function makeDraggable(el) {
+  let isDown = false, startX = 0, startY = 0, origX = 0, origY = 0;
+
+  el.addEventListener('mousedown', e => {
+    if (e.target.closest('.icon-btn')) return;
+    const rect = el.getBoundingClientRect();
+    startX = e.clientX;
+    startY = e.clientY;
+    origX = rect.left;
+    origY = rect.top;
+    isDown = true;
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!isDown) return;
+    el.style.left = (origX + e.clientX - startX) + "px";
+    el.style.top = (origY + e.clientY - startY) + "px";
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+  });
+
+  document.addEventListener('mouseup', () => isDown = false);
+})(localVideoWrapper);
+
+document.addEventListener('gesturestart', e => e.preventDefault());
+
+// ================================================================
+// WEBRTC LOGIC
+// ================================================================
+let pc = null;
+let currentRoomId = null;
+
+const rtcConfig = {
+  iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+};
+
+// ================================================================
+// MATCHING
+// ================================================================
+async function startMatching() {
+  try {
+    const res = await fetch("https://tossee.com/chat/api/matching.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: userId, action: "join" })
+    });
+
+    const data = await res.json();
+    console.log("[MATCHING]", data);
+
+    if (data.status === "waiting") {
+      showStatus("Waiting for partner... (" + (data.queueSize || 1) + " in queue)");
+      setTimeout(() => checkMatching(), 2000);
+      return;
+    }
+
+    if (data.status === "matched") {
+      currentRoomId = data.roomId;
+      console.log("[MATCHED] Room:", currentRoomId, "Partner:", data.partnerId);
+      showStatus("Partner found! Connecting...");
+      await setupWebRTC(true);
+      pollSignals();
+    }
+
+  } catch (err) {
+    console.error("[MATCHING] Error:", err);
+    showStatus("Network error. Retrying...");
+    setTimeout(startMatching, 3000);
+  }
+}
+
+async function checkMatching() {
+  try {
+    const res = await fetch("https://tossee.com/chat/api/matching.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: userId, action: "check" })
+    });
+
+    const data = await res.json();
+    console.log("[CHECK]", data);
+
+    if (data.status === "waiting") {
+      showStatus("Waiting for partner... (" + (data.queueSize || 1) + " in queue)");
+      setTimeout(checkMatching, 2000);
+      return;
+    }
+
+    if (data.status === "matched") {
+      currentRoomId = data.roomId;
+      console.log("[MATCHED] Room:", currentRoomId, "Partner:", data.partnerId);
+      showStatus("Partner found! Connecting...");
+      await setupWebRTC(false);
+      pollSignals();
+    }
+
+  } catch (err) {
+    console.error("[CHECK] Error:", err);
+    setTimeout(checkMatching, 2000);
+  }
+}
+
+// ================================================================
+// WEBRTC SETUP
+// ================================================================
+async function setupWebRTC(isCaller) {
+  if (!localStream) {
+    await startLocalVideo();
+  }
+
+  pc = new RTCPeerConnection(rtcConfig);
+
+  // ✅ CREATE DATA CHANNEL (for chat messages)
+  if (isCaller) {
+    dataChannel = pc.createDataChannel("chat");
+    setupDataChannel();
+    console.log("[DATA CHANNEL] Created (caller)");
+  }
+
+  // ✅ RECEIVE DATA CHANNEL (for chat messages)
+  pc.ondatachannel = (event) => {
+    dataChannel = event.channel;
+    setupDataChannel();
+    console.log("[DATA CHANNEL] Received (receiver)");
+  };
+
+  // Add local tracks
+  localStream.getTracks().forEach(track => {
+    pc.addTrack(track, localStream);
+  });
+
+  // ✅ RECEIVE REMOTE TRACK (with audio fix)
+  pc.ontrack = (evt) => {
+    console.log("[WEBRTC] Remote track received!", evt.track.kind, evt.streams[0]);
+
+    if (!remoteVideo.srcObject) {
+      remoteVideo.srcObject = evt.streams[0];
+
+      // ✅ AUDIO FIX: Force play with audio
+      remoteVideo.play().then(() => {
+        console.log("[AUDIO] Playing with sound!");
+      }).catch(err => {
+        console.log("[AUDIO] Autoplay blocked, user interaction needed:", err);
+        // Show message to user to click to enable audio
+        showStatus("Click anywhere to enable audio");
+        document.body.addEventListener('click', () => {
+          remoteVideo.play();
+          hideStatus();
+        }, { once: true });
+      });
+    }
+
+    showStatus("Connected! Enjoy your chat!");
+    setTimeout(hideStatus, 3000);
+  };
+
+  // ICE candidates
+  pc.onicecandidate = (evt) => {
+    if (evt.candidate) {
+      console.log("[ICE] Sending candidate");
+      sendSignal("candidate", evt.candidate);
+    }
+  };
+
+  // Connection state
+  pc.onconnectionstatechange = () => {
+    console.log("[WEBRTC] Connection state:", pc.connectionState);
+    if (pc.connectionState === "failed") {
+      showStatus("Connection failed. Click Next to try again.");
+    }
+  };
+
+  // If caller, create offer
+  if (isCaller) {
+    console.log("[WEBRTC] Creating offer...");
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    await sendSignal("offer", offer);
+  }
+}
+
+// ================================================================
+// DATA CHANNEL SETUP
+// ================================================================
+function setupDataChannel() {
+  if (!dataChannel) return;
+
+  dataChannel.onopen = () => {
+    console.log("[DATA CHANNEL] Opened! Chat ready.");
+    addMessageToUI("✓ Chat connected", "system");
+  };
+
+  dataChannel.onclose = () => {
+    console.log("[DATA CHANNEL] Closed");
+  };
+
+  dataChannel.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === 'message') {
+        console.log("[CHAT] Received message:", data.text);
+        addMessageToUI(data.text, 'partner');
+      }
+    } catch (e) {
+      console.error("[CHAT] Error parsing message:", e);
+    }
+  };
+}
+
+// ================================================================
+// SIGNALING
+// ================================================================
+async function sendSignal(type, data) {
+  if (!currentRoomId) {
+    console.warn("[SIGNAL] No room ID!");
+    return;
+  }
+
+  try {
+    await fetch("https://tossee.com/chat/api/signaling.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        roomId: currentRoomId,
+        type: type,
+        data: data,
+        userId: userId
+      })
+    });
+    console.log("[SIGNAL] Sent:", type);
+  } catch (e) {
+    console.error("[SIGNAL] Error:", e);
+  }
+}
+
+async function pollSignals() {
+  if (!pc || !currentRoomId) return;
+
+  try {
+    const res = await fetch("https://tossee.com/chat/api/signaling.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        roomId: currentRoomId,
+        type: "check",
+        userId: userId
+      })
+    });
+
+    const data = await res.json();
+
+    if (!data.ok || !data.roomData) {
+      setTimeout(pollSignals, 1500);
+      return;
+    }
+
+    const room = data.roomData;
+
+    // Process offer (if we're receiver)
+    if (!pc.currentRemoteDescription && room.offers && room.offers.length > 0) {
+      const offer = room.offers[room.offers.length - 1];
+      console.log("[SIGNAL] Received offer, creating answer...");
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await sendSignal("answer", answer);
+    }
+
+    // Process answer (if we're caller)
+    if (room.answers && room.answers.length > 0 && pc.signalingState === "have-local-offer") {
+      const answer = room.answers[room.answers.length - 1];
+      console.log("[SIGNAL] Received answer");
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+    }
+
+    // Process ICE candidates
+    if (room.candidates) {
+      for (const c of room.candidates) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(c));
+        } catch (e) {
+          console.warn("[ICE] Error:", e);
+        }
+      }
+    }
+
+  } catch (err) {
+    console.error("[POLL] Error:", err);
+  }
+
+  setTimeout(pollSignals, 1500);
+}
+
+// ================================================================
+// END CALL
+// ================================================================
+function endCall() {
+  console.log("[END CALL]");
+
+  if (dataChannel) {
+    dataChannel.close();
+    dataChannel = null;
+  }
+
+  if (pc) {
+    pc.ontrack = null;
+    pc.onicecandidate = null;
+    pc.ondatachannel = null;
+    pc.close();
+  }
+
+  pc = null;
+  currentRoomId = null;
+  remoteVideo.srcObject = null;
+
+  // Clear chat messages
+  messages.innerHTML = '';
+
+  hideStatus();
+}
+
+// ================================================================
+// NEXT BUTTON
+// ================================================================
+nextBtn.addEventListener("click", () => {
+  console.log("[NEXT] Clicked");
+  endCall();
+  showStatus("Searching for next partner...");
+  startMatching();
+});
+
+// ================================================================
+// AUTO-START ON PAGE LOAD
+// ================================================================
+window.addEventListener("load", () => {
+  console.log("[INIT] Starting matching...");
+  showStatus("Starting...");
+  setTimeout(() => {
+    startMatching();
+  }, 1000);
+});
+
+</script>
+</body>
+</html>
