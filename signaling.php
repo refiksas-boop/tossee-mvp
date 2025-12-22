@@ -36,8 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// n8n webhook URL for signaling
-$n8n_webhook_url = 'https://n8n.tossee.com/webhook/signal';
+// Signaling Manager URL (local PHP with MySQL)
+$n8n_webhook_url = 'https://tossee.com/chat/api/signaling-manager.php';
 
 try {
     // Get request body
