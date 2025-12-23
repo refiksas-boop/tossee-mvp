@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat – Tossee</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #140D42;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    /* Chat Container */
+    .chat-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Video Area */
+    .video-area {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #000;
+      position: relative;
+    }
+
+    #remoteVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    #localVideo {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 200px;
+      height: 150px;
+      object-fit: cover;
+      border: 2px solid #00c6ff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    /* Status Messages */
+    .status-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      font-weight: 600;
+      color: #00c6ff;
+      text-align: center;
+    }
+
+    /* Controls Bar */
+    .controls-bar {
+      background: rgba(20, 13, 66, 0.95);
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      border-top: 2px solid rgba(0, 198, 255, 0.3);
+    }
+
+    .control-btn {
+      background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .control-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 198, 255, 0.4);
+    }
+
+    .control-btn.danger {
+      background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+    }
+
+    .control-btn.danger:hover {
+      box-shadow: 0 6px 20px rgba(255, 68, 68, 0.4);
+    }
+
+    .control-btn.warning {
+      background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    }
+
+    .control-btn.warning:hover {
+      box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+    }
+
+    /* Report Modal */
+    .tossee-modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: #140D42;
+      border: 2px solid #00c6ff;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0, 198, 255, 0.3);
+    }
+
+    .modal-header {
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: #00c6ff;
+      margin: 0 0 15px 0;
+      text-align: center;
+    }
+
+    .modal-description {
+      font-size: 16px;
+      color: #fff;
+      margin: 0 0 30px 0;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* Report Options */
+    .report-options {
+      margin-bottom: 25px;
+    }
+
+    .report-option {
+      background: rgba(0, 198, 255, 0.1);
+      border: 2px solid rgba(0, 198, 255, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .report-option:hover {
+      background: rgba(0, 198, 255, 0.2);
+      border-color: #00c6ff;
+    }
+
+    .report-option.selected {
+      background: rgba(0, 198, 255, 0.3);
+      border-color: #00c6ff;
+      box-shadow: 0 0 15px rgba(0, 198, 255, 0.3);
+    }
+
+    .report-option input[type="radio"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      accent-color: #00c6ff;
+    }
+
+    .report-option label {
+      flex: 1;
+      font-size: 15px;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    /* Optional Message Field */
+    .optional-message {
+      margin-bottom: 30px;
+    }
+
+    .optional-message label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #00c6ff;
+    }
+
+    .optional-message textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 12px;
+      border: 2px solid rgba(0, 198, 255, 0.3);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+
+    .optional-message textarea:focus {
+      outline: none;
+      border-color: #00c6ff;
+      box-shadow: 0 0 10px rgba(0, 198, 255, 0.3);
+    }
+
+    .optional-message textarea::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Modal Buttons */
+    .modal-actions {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+    }
+
+    .modal-btn {
+      background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+      color: white;
+      border: none;
+      padding: 14px 30px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .modal-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 198, 255, 0.4);
+    }
+
+    .modal-btn:disabled {
+      background: #555;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .modal-btn.cancel {
+      background: linear-gradient(135deg, #666 0%, #444 100%);
+    }
+
+    .modal-btn.cancel:hover {
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Success Message */
+    .success-message {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 198, 255, 0.95);
+      color: #140D42;
+      padding: 30px 50px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      text-align: center;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 198, 255, 0.5);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      #localVideo {
+        width: 120px;
+        height: 90px;
+        bottom: 10px;
+        right: 10px;
+      }
+
+      .modal-content {
+        padding: 25px;
+      }
+
+      .controls-bar {
+        flex-wrap: wrap;
+        padding: 15px;
+        gap: 10px;
+      }
+
+      .control-btn {
+        padding: 10px 18px;
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="chat-container">
+    <!-- Video Area -->
+    <div class="video-area">
+      <video id="remoteVideo" autoplay playsinline></video>
+      <video id="localVideo" autoplay playsinline muted></video>
+      <div class="status-message" id="statusMessage">Waiting for connection...</div>
+    </div>
+
+    <!-- Controls Bar -->
+    <div class="controls-bar">
+      <button class="control-btn" id="nextBtn">Next</button>
+      <button class="control-btn danger" id="endBtn">End Chat</button>
+      <button class="control-btn warning" id="reportBtn">Report</button>
+    </div>
+  </div>
+
+  <!-- Report Modal -->
+  <div id="reportModal" class="tossee-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Report Inappropriate Behavior</h2>
+        <p class="modal-description">
+          Please help us keep Tossee safe.<br>
+          Select a reason below. Writing a message is optional.
+        </p>
+      </div>
+
+      <form id="reportForm">
+        <div class="report-options">
+          <div class="report-option" data-value="harassment">
+            <input type="radio" name="reportReason" value="harassment" id="opt1">
+            <label for="opt1">Harassment or offensive behavior</label>
+          </div>
+          <div class="report-option" data-value="nudity">
+            <input type="radio" name="reportReason" value="nudity" id="opt2">
+            <label for="opt2">Nudity or sexual content</label>
+          </div>
+          <div class="report-option" data-value="spam">
+            <input type="radio" name="reportReason" value="spam" id="opt3">
+            <label for="opt3">Spam, scam, or advertising</label>
+          </div>
+        </div>
+
+        <div class="optional-message">
+          <label for="additionalDetails">Additional details (optional)</label>
+          <textarea
+            id="additionalDetails"
+            name="additionalDetails"
+            placeholder="Briefly describe what happened (optional)"
+          ></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="modal-btn cancel" id="cancelReportBtn">Cancel</button>
+          <button type="submit" class="modal-btn" id="submitReportBtn" disabled>Report</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Success Message -->
+  <div id="successMessage" class="success-message">
+    Thank you for your report.<br>We'll review it shortly.
+  </div>
+
+  <script>
+    // Get elements
+    const reportBtn = document.getElementById('reportBtn');
+    const reportModal = document.getElementById('reportModal');
+    const reportForm = document.getElementById('reportForm');
+    const cancelReportBtn = document.getElementById('cancelReportBtn');
+    const submitReportBtn = document.getElementById('submitReportBtn');
+    const successMessage = document.getElementById('successMessage');
+    const reportOptions = document.querySelectorAll('.report-option');
+    const radioButtons = document.querySelectorAll('input[name="reportReason"]');
+    const statusMessage = document.getElementById('statusMessage');
+    const nextBtn = document.getElementById('nextBtn');
+    const endBtn = document.getElementById('endBtn');
+
+    // Get current user and partner from URL or session
+    let currentUserId = null;
+    let partnerId = null;
+
+    // Extract user ID from URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    currentUserId = urlParams.get('uid');
+
+    // Simulate partner connection (in real implementation, this would come from WebRTC signaling)
+    function simulatePartnerConnection() {
+      // In a real implementation, this would be set when WebRTC connection is established
+      partnerId = 'partner_' + Math.random().toString(36).substr(2, 9);
+      statusMessage.textContent = 'Connected';
+      setTimeout(() => {
+        statusMessage.style.display = 'none';
+      }, 2000);
+    }
+
+    // Simulate connection after page load
+    setTimeout(simulatePartnerConnection, 1500);
+
+    // Open report modal
+    reportBtn.addEventListener('click', () => {
+      if (!partnerId) {
+        alert('No active chat to report.');
+        return;
+      }
+      reportModal.style.display = 'flex';
+    });
+
+    // Close modal
+    cancelReportBtn.addEventListener('click', () => {
+      reportModal.style.display = 'none';
+      reportForm.reset();
+      submitReportBtn.disabled = true;
+      reportOptions.forEach(opt => opt.classList.remove('selected'));
+    });
+
+    // Handle report option selection
+    reportOptions.forEach(option => {
+      option.addEventListener('click', function() {
+        const radio = this.querySelector('input[type="radio"]');
+        radio.checked = true;
+
+        // Remove selected class from all options
+        reportOptions.forEach(opt => opt.classList.remove('selected'));
+
+        // Add selected class to clicked option
+        this.classList.add('selected');
+
+        // Enable submit button
+        submitReportBtn.disabled = false;
+      });
+    });
+
+    // Handle radio button change
+    radioButtons.forEach(radio => {
+      radio.addEventListener('change', () => {
+        submitReportBtn.disabled = false;
+      });
+    });
+
+    // Handle form submission
+    reportForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const selectedReason = document.querySelector('input[name="reportReason"]:checked');
+
+      if (!selectedReason) {
+        alert('Please select a reason for reporting.');
+        return;
+      }
+
+      const additionalDetails = document.getElementById('additionalDetails').value;
+
+      // Prepare report data
+      const reportData = {
+        reporter_id: currentUserId,
+        reported_user_id: partnerId,
+        report_reason: selectedReason.value,
+        additional_details: additionalDetails || null
+      };
+
+      // Submit report to API
+      try {
+        const response = await fetch('/wp-json/tossee/v1/report', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(reportData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          // Close modal
+          reportModal.style.display = 'none';
+
+          // Show success message
+          successMessage.style.display = 'block';
+
+          // Hide success message after 3 seconds
+          setTimeout(() => {
+            successMessage.style.display = 'none';
+          }, 3000);
+
+          // Disconnect from chat after 1 second
+          setTimeout(() => {
+            disconnectFromChat();
+          }, 1000);
+
+          // Reset form
+          reportForm.reset();
+          submitReportBtn.disabled = true;
+          reportOptions.forEach(opt => opt.classList.remove('selected'));
+        } else {
+          alert('Failed to submit report. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error submitting report:', error);
+        alert('An error occurred. Please try again.');
+      }
+    });
+
+    // Disconnect from chat
+    function disconnectFromChat() {
+      // In real implementation, this would:
+      // 1. Close WebRTC connection
+      // 2. Notify signaling server
+      // 3. Clear video streams
+      // 4. Return to waiting room or lobby
+
+      statusMessage.textContent = 'Disconnected. Returning to lobby...';
+      statusMessage.style.display = 'block';
+
+      // Redirect to lobby/home after 2 seconds
+      setTimeout(() => {
+        window.location.href = '/'; // Change to your lobby URL
+      }, 2000);
+    }
+
+    // Next button - skip to next chat partner
+    nextBtn.addEventListener('click', () => {
+      disconnectFromChat();
+    });
+
+    // End chat button
+    endBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to end the chat?')) {
+        disconnectFromChat();
+      }
+    });
+
+    // Close modal when clicking outside
+    reportModal.addEventListener('click', (e) => {
+      if (e.target === reportModal) {
+        reportModal.style.display = 'none';
+        reportForm.reset();
+        submitReportBtn.disabled = true;
+        reportOptions.forEach(opt => opt.classList.remove('selected'));
+      }
+    });
+
+    // Initialize local video (webcam)
+    async function initializeLocalVideo() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        document.getElementById('localVideo').srcObject = stream;
+      } catch (error) {
+        console.error('Error accessing media devices:', error);
+        statusMessage.textContent = 'Camera/microphone access denied';
+      }
+    }
+
+    // Initialize on page load
+    initializeLocalVideo();
+  </script>
+</body>
+</html>
