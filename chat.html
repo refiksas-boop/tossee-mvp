@@ -577,8 +577,28 @@
       }
     }
 
+    // Check if report button should be enabled
+    async function checkReportButtonSetting() {
+      try {
+        const response = await fetch('/wp-json/tossee/v1/settings/report-button', {
+          credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (data.success && !data.enabled) {
+          // Hide the report button if disabled by admin
+          reportBtn.style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Error checking report button setting:', error);
+        // Default to showing the button if there's an error
+      }
+    }
+
     // Initialize on page load
     initializeLocalVideo();
+    checkReportButtonSetting();
   </script>
 </body>
 </html>

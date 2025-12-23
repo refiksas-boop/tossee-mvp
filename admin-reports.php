@@ -449,7 +449,7 @@
     <nav class="admin-nav">
       <a href="#" class="active">Reports</a>
       <a href="#">Users</a>
-      <a href="#">Settings</a>
+      <a href="#" onclick="openSettingsModal(); return false;">Settings</a>
     </nav>
   </div>
 
@@ -533,7 +533,56 @@
       </div>
       <div class="modal-footer">
         <button class="action-btn" onclick="closeModal()">Close</button>
+        <button class="action-btn" id="blockUserBtn" onclick="blockUserFromReport()">Block User</button>
+        <button class="action-btn" id="messageUserBtn" onclick="openMessageModal()">Message User</button>
         <button class="action-btn resolve" onclick="markAsResolved()">Mark as Resolved</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Message User Modal -->
+  <div id="messageModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Send Message to User</h2>
+      </div>
+      <div class="modal-body">
+        <div class="detail-row">
+          <label>Recipient</label>
+          <div class="value" id="messageRecipient">-</div>
+        </div>
+        <div class="detail-row">
+          <label>Message</label>
+          <textarea id="messageText" style="width: 100%; min-height: 120px; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: Arial, sans-serif; font-size: 14px;"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn" onclick="closeMessageModal()">Cancel</button>
+        <button class="action-btn resolve" onclick="sendMessage()">Send Message</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Report System Settings</h2>
+      </div>
+      <div class="modal-body">
+        <div class="detail-row">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="reportButtonEnabled" style="width: 20px; height: 20px; cursor: pointer;">
+            <span style="color: #140D42; font-size: 16px;">Enable Report Button</span>
+          </label>
+          <p style="color: #666; font-size: 13px; margin-top: 8px;">
+            When disabled, users will not see the report button during chats.
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn" onclick="closeSettingsModal()">Cancel</button>
+        <button class="action-btn resolve" onclick="saveSettings()">Save Settings</button>
       </div>
     </div>
   </div>
@@ -842,6 +891,224 @@
     document.getElementById('reportModal').addEventListener('click', function(e) {
       if (e.target === this) {
         closeModal();
+      }
+    });
+
+    // Global variable for current reported user
+    let currentReportedUserId = null;
+    let currentReportedUsername = null;
+
+    // Block user from report
+    async function blockUserFromReport() {
+      if (!currentReportedUserId) {
+        alert('No user selected');
+        return;
+      }
+
+      const reason = prompt('Enter reason for blocking this user:', 'Reported for inappropriate behavior');
+
+      if (!reason) return;
+
+      try {
+        const response = await fetch(`/wp-json/tossee/v1/user/${currentReportedUserId}/block`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({ reason: reason })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          alert('User blocked successfully');
+          closeModal();
+          loadReports();
+        } else {
+          alert('Failed to block user');
+        }
+      } catch (error) {
+        console.error('Error blocking user:', error);
+        alert('Failed to block user');
+      }
+    }
+
+    // Open message modal
+    function openMessageModal() {
+      if (!currentReportedUserId) {
+        alert('No user selected');
+        return;
+      }
+
+      document.getElementById('messageRecipient').textContent = `${currentReportedUsername} (${currentReportedUserId})`;
+      document.getElementById('messageText').value = '';
+      document.getElementById('messageModal').style.display = 'flex';
+    }
+
+    // Close message modal
+    function closeMessageModal() {
+      document.getElementById('messageModal').style.display = 'none';
+      document.getElementById('messageText').value = '';
+    }
+
+    // Send message to user
+    async function sendMessage() {
+      const message = document.getElementById('messageText').value.trim();
+
+      if (!message) {
+        alert('Please enter a message');
+        return;
+      }
+
+      try {
+        const response = await fetch('/wp-json/tossee/v1/message', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            user_id: currentReportedUserId,
+            message: message
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          alert('Message sent successfully');
+          closeMessageModal();
+        } else {
+          alert('Failed to send message');
+        }
+      } catch (error) {
+        console.error('Error sending message:', error);
+        alert('Failed to send message');
+      }
+    }
+
+    // Open settings modal
+    async function openSettingsModal() {
+      try {
+        const response = await fetch('/wp-json/tossee/v1/settings/report-button', {
+          credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          document.getElementById('reportButtonEnabled').checked = data.enabled;
+          document.getElementById('settingsModal').style.display = 'flex';
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+        alert('Failed to load settings');
+      }
+    }
+
+    // Close settings modal
+    function closeSettingsModal() {
+      document.getElementById('settingsModal').style.display = 'none';
+    }
+
+    // Save settings
+    async function saveSettings() {
+      const enabled = document.getElementById('reportButtonEnabled').checked;
+
+      try {
+        const response = await fetch('/wp-json/tossee/v1/settings/report-button', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({ enabled: enabled })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          alert('Settings saved successfully');
+          closeSettingsModal();
+        } else {
+          alert('Failed to save settings');
+        }
+      } catch (error) {
+        console.error('Error saving settings:', error);
+        alert('Failed to save settings');
+      }
+    }
+
+    // Update viewReport function to set current user
+    const originalViewReport = viewReport;
+    viewReport = async function(reportId) {
+      try {
+        const response = await fetch(`/wp-json/tossee/v1/reports`, {
+          credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          const report = data.reports.find(r => r.id == reportId);
+
+          if (report) {
+            currentReportId = reportId;
+            currentReportedUserId = report.reported_user_id;
+            currentReportedUsername = report.reported_username || 'Unknown';
+
+            const date = new Date(report.created_at).toLocaleString();
+
+            document.getElementById('modalBody').innerHTML = `
+              <div class="detail-row">
+                <label>Report ID</label>
+                <div class="value">#${report.id}</div>
+              </div>
+              <div class="detail-row">
+                <label>Reporter</label>
+                <div class="value">${report.reporter_username || 'Unknown'} (${report.reporter_id})</div>
+              </div>
+              <div class="detail-row">
+                <label>Reported User</label>
+                <div class="value">${report.reported_username || 'Unknown'} (${report.reported_user_id})</div>
+              </div>
+              <div class="detail-row">
+                <label>Reason</label>
+                <div class="value">${report.report_reason}</div>
+              </div>
+              <div class="detail-row">
+                <label>Additional Details</label>
+                <div class="value">${report.additional_details || 'No additional details provided'}</div>
+              </div>
+              <div class="detail-row">
+                <label>Date Submitted</label>
+                <div class="value">${date}</div>
+              </div>
+              <div class="detail-row">
+                <label>Status</label>
+                <div class="value"><span class="status-badge ${report.report_status}">${report.report_status}</span></div>
+              </div>
+            `;
+
+            document.getElementById('reportModal').style.display = 'flex';
+          }
+        }
+      } catch (error) {
+        console.error('Error loading report details:', error);
+      }
+    };
+
+    // Close modals when clicking outside
+    document.getElementById('messageModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeMessageModal();
+      }
+    });
+
+    document.getElementById('settingsModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeSettingsModal();
       }
     });
   </script>

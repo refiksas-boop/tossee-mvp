@@ -39,6 +39,53 @@ add_action('rest_api_init', function () {
         'callback' => 'tossee_get_user_profile',
         'permission_callback' => '__return_true',
     ));
+
+    // Block/Unblock user
+    register_rest_route('tossee/v1', '/user/(?P<user_id>[a-zA-Z0-9_]+)/block', array(
+        'methods' => 'POST',
+        'callback' => 'tossee_block_user',
+        'permission_callback' => 'tossee_check_admin_permission',
+    ));
+
+    register_rest_route('tossee/v1', '/user/(?P<user_id>[a-zA-Z0-9_]+)/unblock', array(
+        'methods' => 'POST',
+        'callback' => 'tossee_unblock_user',
+        'permission_callback' => 'tossee_check_admin_permission',
+    ));
+
+    // Send message to user
+    register_rest_route('tossee/v1', '/message', array(
+        'methods' => 'POST',
+        'callback' => 'tossee_send_admin_message',
+        'permission_callback' => 'tossee_check_admin_permission',
+    ));
+
+    // Get messages for a user
+    register_rest_route('tossee/v1', '/messages/(?P<user_id>[a-zA-Z0-9_]+)', array(
+        'methods' => 'GET',
+        'callback' => 'tossee_get_user_messages',
+        'permission_callback' => 'tossee_check_admin_permission',
+    ));
+
+    // Get/Update report button setting
+    register_rest_route('tossee/v1', '/settings/report-button', array(
+        'methods' => 'GET',
+        'callback' => 'tossee_get_report_button_setting',
+        'permission_callback' => '__return_true',
+    ));
+
+    register_rest_route('tossee/v1', '/settings/report-button', array(
+        'methods' => 'POST',
+        'callback' => 'tossee_update_report_button_setting',
+        'permission_callback' => 'tossee_check_admin_permission',
+    ));
+
+    // Get user by ID (for admin)
+    register_rest_route('tossee/v1', '/user/(?P<user_id>[a-zA-Z0-9_]+)', array(
+        'methods' => 'GET',
+        'callback' => 'tossee_get_user_by_id',
+        'permission_callback' => 'tossee_check_admin_permission',
+    ));
 });
 
 /**
@@ -419,5 +466,255 @@ function tossee_mark_notification_read($request) {
     return array(
         'success' => true,
         'message' => 'Notification marked as read'
+    );
+}
+
+/* ================================
+   USER BLOCKING/UNBLOCKING
+================================ */
+
+/**
+ * Block a user
+ */
+function tossee_block_user($request) {
+    global $wpdb;
+
+    $user_id = $request->get_param('user_id');
+    $data = json_decode($request->get_body(), true);
+
+    $reason = isset($data['reason']) ? sanitize_textarea_field($data['reason']) : 'Reported for inappropriate behavior';
+    $admin_id = get_current_user_id();
+
+    $table_name = $wpdb->prefix . 'tossee_users';
+
+    $result = $wpdb->update(
+        $table_name,
+        array(
+            'is_blocked' => 1,
+            'block_reason' => $reason,
+            'blocked_at' => current_time('mysql'),
+            'blocked_by' => $admin_id
+        ),
+        array('tossee_id' => $user_id),
+        array('%d', '%s', '%s', '%d'),
+        array('%s')
+    );
+
+    if ($result === false) {
+        return new WP_Error(
+            'database_error',
+            'Failed to block user',
+            array('status' => 500)
+        );
+    }
+
+    return array(
+        'success' => true,
+        'message' => 'User blocked successfully'
+    );
+}
+
+/**
+ * Unblock a user
+ */
+function tossee_unblock_user($request) {
+    global $wpdb;
+
+    $user_id = $request->get_param('user_id');
+
+    $table_name = $wpdb->prefix . 'tossee_users';
+
+    $result = $wpdb->update(
+        $table_name,
+        array(
+            'is_blocked' => 0,
+            'block_reason' => null,
+            'blocked_at' => null,
+            'blocked_by' => null
+        ),
+        array('tossee_id' => $user_id),
+        array('%d', '%s', '%s', '%d'),
+        array('%s')
+    );
+
+    if ($result === false) {
+        return new WP_Error(
+            'database_error',
+            'Failed to unblock user',
+            array('status' => 500)
+        );
+    }
+
+    return array(
+        'success' => true,
+        'message' => 'User unblocked successfully'
+    );
+}
+
+/* ================================
+   ADMIN MESSAGING
+================================ */
+
+/**
+ * Send message to user from admin
+ */
+function tossee_send_admin_message($request) {
+    global $wpdb;
+
+    $data = json_decode($request->get_body(), true);
+
+    if (empty($data['user_id']) || empty($data['message'])) {
+        return new WP_Error(
+            'missing_fields',
+            'User ID and message are required',
+            array('status' => 400)
+        );
+    }
+
+    $user_id = sanitize_text_field($data['user_id']);
+    $message = sanitize_textarea_field($data['message']);
+    $admin_id = get_current_user_id();
+
+    $table_name = $wpdb->prefix . 'tossee_admin_messages';
+
+    $result = $wpdb->insert(
+        $table_name,
+        array(
+            'user_id' => $user_id,
+            'admin_id' => $admin_id,
+            'message' => $message,
+            'is_read' => 0,
+            'created_at' => current_time('mysql')
+        ),
+        array('%s', '%d', '%s', '%d', '%s')
+    );
+
+    if ($result === false) {
+        return new WP_Error(
+            'database_error',
+            'Failed to send message',
+            array('status' => 500)
+        );
+    }
+
+    return array(
+        'success' => true,
+        'message' => 'Message sent successfully',
+        'message_id' => $wpdb->insert_id
+    );
+}
+
+/**
+ * Get messages for a specific user
+ */
+function tossee_get_user_messages($request) {
+    global $wpdb;
+
+    $user_id = $request->get_param('user_id');
+    $table_name = $wpdb->prefix . 'tossee_admin_messages';
+
+    $messages = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM $table_name WHERE user_id = %s ORDER BY created_at DESC",
+        $user_id
+    ));
+
+    return array(
+        'success' => true,
+        'messages' => $messages
+    );
+}
+
+/* ================================
+   SETTINGS MANAGEMENT
+================================ */
+
+/**
+ * Get report button setting
+ */
+function tossee_get_report_button_setting($request) {
+    global $wpdb;
+
+    $table_name = $wpdb->prefix . 'tossee_settings';
+
+    $setting = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $table_name WHERE setting_key = %s",
+        'report_button_enabled'
+    ));
+
+    $enabled = $setting ? (bool)$setting->setting_value : true;
+
+    return array(
+        'success' => true,
+        'enabled' => $enabled
+    );
+}
+
+/**
+ * Update report button setting
+ */
+function tossee_update_report_button_setting($request) {
+    global $wpdb;
+
+    $data = json_decode($request->get_body(), true);
+
+    if (!isset($data['enabled'])) {
+        return new WP_Error(
+            'missing_field',
+            'Enabled field is required',
+            array('status' => 400)
+        );
+    }
+
+    $enabled = $data['enabled'] ? '1' : '0';
+    $table_name = $wpdb->prefix . 'tossee_settings';
+
+    $wpdb->replace(
+        $table_name,
+        array(
+            'setting_key' => 'report_button_enabled',
+            'setting_value' => $enabled
+        ),
+        array('%s', '%s')
+    );
+
+    return array(
+        'success' => true,
+        'message' => 'Setting updated successfully',
+        'enabled' => (bool)$enabled
+    );
+}
+
+/* ================================
+   USER MANAGEMENT
+================================ */
+
+/**
+ * Get user by ID
+ */
+function tossee_get_user_by_id($request) {
+    global $wpdb;
+
+    $user_id = $request->get_param('user_id');
+    $table_name = $wpdb->prefix . 'tossee_users';
+
+    $user = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $table_name WHERE tossee_id = %s",
+        $user_id
+    ));
+
+    if (!$user) {
+        return new WP_Error(
+            'user_not_found',
+            'User not found',
+            array('status' => 404)
+        );
+    }
+
+    // Don't return password hash
+    unset($user->password_hash);
+
+    return array(
+        'success' => true,
+        'user' => $user
     );
 }
