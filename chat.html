@@ -324,7 +324,7 @@
     <div class="video-area">
       <video id="remoteVideo" autoplay playsinline></video>
       <video id="localVideo" autoplay playsinline muted></video>
-      <div class="status-message" id="statusMessage">Waiting for connection...</div>
+      <div class="status-message" id="statusMessage">Initializing...</div>
     </div>
 
     <!-- Controls Bar -->
@@ -385,7 +385,36 @@
   </div>
 
   <script>
-    // Get elements
+    // ===================================
+    // CONFIGURATION
+    // ===================================
+    const SIGNALING_SERVER = 'wss://your-signaling-server.com'; // Replace with your signaling server
+    const ICE_SERVERS = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' }
+    ];
+
+    // ===================================
+    // GLOBAL VARIABLES
+    // ===================================
+    let localStream = null;
+    let remoteStream = null;
+    let peerConnection = null;
+    let dataChannel = null;
+    let signalingSocket = null;
+    let currentUserId = null;
+    let partnerId = null;
+    let isConnected = false;
+    let isSearching = false;
+
+    // ===================================
+    // DOM ELEMENTS
+    // ===================================
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const statusMessage = document.getElementById('statusMessage');
+    const nextBtn = document.getElementById('nextBtn');
+    const endBtn = document.getElementById('endBtn');
     const reportBtn = document.getElementById('reportBtn');
     const reportModal = document.getElementById('reportModal');
     const reportForm = document.getElementById('reportForm');
@@ -394,41 +423,405 @@
     const successMessage = document.getElementById('successMessage');
     const reportOptions = document.querySelectorAll('.report-option');
     const radioButtons = document.querySelectorAll('input[name="reportReason"]');
-    const statusMessage = document.getElementById('statusMessage');
-    const nextBtn = document.getElementById('nextBtn');
-    const endBtn = document.getElementById('endBtn');
 
-    // Get current user and partner from URL or session
-    let currentUserId = null;
-    let partnerId = null;
+    // ===================================
+    // INITIALIZATION
+    // ===================================
+    async function init() {
+      try {
+        // Get user ID from URL or session
+        const urlParams = new URLSearchParams(window.location.search);
+        currentUserId = urlParams.get('uid') || sessionStorage.getItem('tossee_id');
 
-    // Extract user ID from URL parameter
-    const urlParams = new URLSearchParams(window.location.search);
-    currentUserId = urlParams.get('uid');
+        if (!currentUserId) {
+          statusMessage.textContent = 'Error: No user ID found';
+          return;
+        }
 
-    // Simulate partner connection (in real implementation, this would come from WebRTC signaling)
-    function simulatePartnerConnection() {
-      // In a real implementation, this would be set when WebRTC connection is established
-      partnerId = 'partner_' + Math.random().toString(36).substr(2, 9);
-      statusMessage.textContent = 'Connected';
+        // Initialize local media
+        await initializeLocalMedia();
+
+        // Connect to signaling server
+        await connectToSignalingServer();
+
+        // Check report button settings
+        await checkReportButtonSetting();
+
+        // Start searching for a partner
+        startSearching();
+
+      } catch (error) {
+        console.error('Initialization error:', error);
+        statusMessage.textContent = 'Initialization failed. Please refresh.';
+      }
+    }
+
+    // ===================================
+    // LOCAL MEDIA
+    // ===================================
+    async function initializeLocalMedia() {
+      try {
+        statusMessage.textContent = 'Requesting camera and microphone...';
+
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+
+        localVideo.srcObject = localStream;
+        statusMessage.textContent = 'Ready to connect...';
+
+      } catch (error) {
+        console.error('Media access error:', error);
+        statusMessage.textContent = 'Camera/microphone access denied';
+        throw error;
+      }
+    }
+
+    // ===================================
+    // SIGNALING SERVER CONNECTION
+    // ===================================
+    async function connectToSignalingServer() {
+      return new Promise((resolve, reject) => {
+        statusMessage.textContent = 'Connecting to server...';
+
+        signalingSocket = new WebSocket(SIGNALING_SERVER);
+
+        signalingSocket.onopen = () => {
+          console.log('Connected to signaling server');
+          // Register user
+          signalingSocket.send(JSON.stringify({
+            type: 'register',
+            userId: currentUserId
+          }));
+          resolve();
+        };
+
+        signalingSocket.onmessage = handleSignalingMessage;
+
+        signalingSocket.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          statusMessage.textContent = 'Connection error';
+          reject(error);
+        };
+
+        signalingSocket.onclose = () => {
+          console.log('Disconnected from signaling server');
+          if (isConnected) {
+            handleDisconnect();
+          }
+        };
+      });
+    }
+
+    // ===================================
+    // SIGNALING MESSAGE HANDLER
+    // ===================================
+    async function handleSignalingMessage(event) {
+      const message = JSON.parse(event.data);
+
+      switch (message.type) {
+        case 'match-found':
+          partnerId = message.partnerId;
+          await handleMatchFound(message);
+          break;
+
+        case 'offer':
+          await handleOffer(message);
+          break;
+
+        case 'answer':
+          await handleAnswer(message);
+          break;
+
+        case 'ice-candidate':
+          await handleIceCandidate(message);
+          break;
+
+        case 'partner-disconnected':
+          handlePartnerDisconnected();
+          break;
+
+        case 'no-matches':
+          statusMessage.textContent = 'Waiting for someone to connect...';
+          break;
+
+        default:
+          console.log('Unknown message type:', message.type);
+      }
+    }
+
+    // ===================================
+    // MATCHING & CONNECTION
+    // ===================================
+    function startSearching() {
+      if (isSearching) return;
+
+      isSearching = true;
+      statusMessage.textContent = 'Searching for a chat partner...';
+
+      signalingSocket.send(JSON.stringify({
+        type: 'find-match',
+        userId: currentUserId
+      }));
+    }
+
+    async function handleMatchFound(message) {
+      console.log('Match found:', message.partnerId);
+      statusMessage.textContent = 'Match found! Connecting...';
+      isSearching = false;
+      partnerId = message.partnerId;
+
+      // Create peer connection
+      await createPeerConnection();
+
+      // If we are the initiator, create and send offer
+      if (message.initiator) {
+        await createAndSendOffer();
+      }
+    }
+
+    // ===================================
+    // WEBRTC PEER CONNECTION
+    // ===================================
+    async function createPeerConnection() {
+      peerConnection = new RTCPeerConnection({
+        iceServers: ICE_SERVERS
+      });
+
+      // Add local stream tracks to peer connection
+      localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStream);
+      });
+
+      // Handle incoming remote stream
+      peerConnection.ontrack = (event) => {
+        console.log('Received remote track');
+        if (!remoteStream) {
+          remoteStream = new MediaStream();
+          remoteVideo.srcObject = remoteStream;
+        }
+        remoteStream.addTrack(event.track);
+      };
+
+      // Handle ICE candidates
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          signalingSocket.send(JSON.stringify({
+            type: 'ice-candidate',
+            candidate: event.candidate,
+            to: partnerId
+          }));
+        }
+      };
+
+      // Handle connection state changes
+      peerConnection.onconnectionstatechange = () => {
+        console.log('Connection state:', peerConnection.connectionState);
+
+        switch (peerConnection.connectionState) {
+          case 'connected':
+            isConnected = true;
+            statusMessage.textContent = 'Connected';
+            setTimeout(() => {
+              statusMessage.style.display = 'none';
+            }, 2000);
+            break;
+
+          case 'disconnected':
+          case 'failed':
+          case 'closed':
+            handleDisconnect();
+            break;
+        }
+      };
+
+      // Create data channel for text chat (optional)
+      if (peerConnection.connectionState === 'new') {
+        dataChannel = peerConnection.createDataChannel('chat');
+        setupDataChannel();
+      }
+
+      peerConnection.ondatachannel = (event) => {
+        dataChannel = event.channel;
+        setupDataChannel();
+      };
+    }
+
+    function setupDataChannel() {
+      dataChannel.onopen = () => {
+        console.log('Data channel opened');
+      };
+
+      dataChannel.onmessage = (event) => {
+        console.log('Received message:', event.data);
+        // Handle text chat messages here if needed
+      };
+
+      dataChannel.onclose = () => {
+        console.log('Data channel closed');
+      };
+    }
+
+    // ===================================
+    // WEBRTC OFFER/ANSWER
+    // ===================================
+    async function createAndSendOffer() {
+      try {
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+
+        signalingSocket.send(JSON.stringify({
+          type: 'offer',
+          offer: offer,
+          to: partnerId
+        }));
+      } catch (error) {
+        console.error('Error creating offer:', error);
+      }
+    }
+
+    async function handleOffer(message) {
+      try {
+        await createPeerConnection();
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(message.offer));
+
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+
+        signalingSocket.send(JSON.stringify({
+          type: 'answer',
+          answer: answer,
+          to: message.from
+        }));
+
+        partnerId = message.from;
+      } catch (error) {
+        console.error('Error handling offer:', error);
+      }
+    }
+
+    async function handleAnswer(message) {
+      try {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(message.answer));
+      } catch (error) {
+        console.error('Error handling answer:', error);
+      }
+    }
+
+    async function handleIceCandidate(message) {
+      try {
+        if (peerConnection && message.candidate) {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(message.candidate));
+        }
+      } catch (error) {
+        console.error('Error adding ICE candidate:', error);
+      }
+    }
+
+    // ===================================
+    // DISCONNECT HANDLING
+    // ===================================
+    function handleDisconnect() {
+      isConnected = false;
+      partnerId = null;
+
+      // Close peer connection
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+
+      // Clear remote video
+      if (remoteStream) {
+        remoteStream.getTracks().forEach(track => track.stop());
+        remoteStream = null;
+        remoteVideo.srcObject = null;
+      }
+
+      // Clear data channel
+      if (dataChannel) {
+        dataChannel.close();
+        dataChannel = null;
+      }
+
+      statusMessage.style.display = 'block';
+      statusMessage.textContent = 'Partner disconnected';
+
+      // Auto-search for next partner after 2 seconds
       setTimeout(() => {
-        statusMessage.style.display = 'none';
+        startSearching();
       }, 2000);
     }
 
-    // Simulate connection after page load
-    setTimeout(simulatePartnerConnection, 1500);
+    function handlePartnerDisconnected() {
+      console.log('Partner disconnected');
+      handleDisconnect();
+    }
 
-    // Open report modal
+    // ===================================
+    // CONTROL BUTTONS
+    // ===================================
+    nextBtn.addEventListener('click', () => {
+      if (isConnected) {
+        // Notify server we're disconnecting
+        signalingSocket.send(JSON.stringify({
+          type: 'disconnect',
+          to: partnerId
+        }));
+      }
+
+      handleDisconnect();
+      startSearching();
+    });
+
+    endBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to end the chat?')) {
+        if (isConnected) {
+          signalingSocket.send(JSON.stringify({
+            type: 'disconnect',
+            to: partnerId
+          }));
+        }
+
+        // Clean up
+        handleDisconnect();
+
+        // Stop local stream
+        if (localStream) {
+          localStream.getTracks().forEach(track => track.stop());
+        }
+
+        // Close signaling connection
+        if (signalingSocket) {
+          signalingSocket.close();
+        }
+
+        // Redirect to home
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1000);
+      }
+    });
+
+    // ===================================
+    // REPORT SYSTEM
+    // ===================================
     reportBtn.addEventListener('click', () => {
-      if (!partnerId) {
+      if (!partnerId || !isConnected) {
         alert('No active chat to report.');
         return;
       }
       reportModal.style.display = 'flex';
     });
 
-    // Close modal
     cancelReportBtn.addEventListener('click', () => {
       reportModal.style.display = 'none';
       reportForm.reset();
@@ -436,36 +829,26 @@
       reportOptions.forEach(opt => opt.classList.remove('selected'));
     });
 
-    // Handle report option selection
     reportOptions.forEach(option => {
       option.addEventListener('click', function() {
         const radio = this.querySelector('input[type="radio"]');
         radio.checked = true;
-
-        // Remove selected class from all options
         reportOptions.forEach(opt => opt.classList.remove('selected'));
-
-        // Add selected class to clicked option
         this.classList.add('selected');
-
-        // Enable submit button
         submitReportBtn.disabled = false;
       });
     });
 
-    // Handle radio button change
     radioButtons.forEach(radio => {
       radio.addEventListener('change', () => {
         submitReportBtn.disabled = false;
       });
     });
 
-    // Handle form submission
     reportForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const selectedReason = document.querySelector('input[name="reportReason"]:checked');
-
       if (!selectedReason) {
         alert('Please select a reason for reporting.');
         return;
@@ -473,7 +856,6 @@
 
       const additionalDetails = document.getElementById('additionalDetails').value;
 
-      // Prepare report data
       const reportData = {
         reporter_id: currentUserId,
         reported_user_id: partnerId,
@@ -481,13 +863,10 @@
         additional_details: additionalDetails || null
       };
 
-      // Submit report to API
       try {
         const response = await fetch('/wp-json/tossee/v1/report', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify(reportData)
         });
@@ -495,23 +874,27 @@
         const result = await response.json();
 
         if (response.ok && result.success) {
-          // Close modal
           reportModal.style.display = 'none';
-
-          // Show success message
           successMessage.style.display = 'block';
 
-          // Hide success message after 3 seconds
           setTimeout(() => {
             successMessage.style.display = 'none';
           }, 3000);
 
-          // Disconnect from chat after 1 second
+          // Disconnect and notify server
+          if (isConnected) {
+            signalingSocket.send(JSON.stringify({
+              type: 'disconnect',
+              to: partnerId,
+              reason: 'reported'
+            }));
+          }
+
           setTimeout(() => {
-            disconnectFromChat();
+            handleDisconnect();
+            startSearching();
           }, 1000);
 
-          // Reset form
           reportForm.reset();
           submitReportBtn.disabled = true;
           reportOptions.forEach(opt => opt.classList.remove('selected'));
@@ -524,36 +907,6 @@
       }
     });
 
-    // Disconnect from chat
-    function disconnectFromChat() {
-      // In real implementation, this would:
-      // 1. Close WebRTC connection
-      // 2. Notify signaling server
-      // 3. Clear video streams
-      // 4. Return to waiting room or lobby
-
-      statusMessage.textContent = 'Disconnected. Returning to lobby...';
-      statusMessage.style.display = 'block';
-
-      // Redirect to lobby/home after 2 seconds
-      setTimeout(() => {
-        window.location.href = '/'; // Change to your lobby URL
-      }, 2000);
-    }
-
-    // Next button - skip to next chat partner
-    nextBtn.addEventListener('click', () => {
-      disconnectFromChat();
-    });
-
-    // End chat button
-    endBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to end the chat?')) {
-        disconnectFromChat();
-      }
-    });
-
-    // Close modal when clicking outside
     reportModal.addEventListener('click', (e) => {
       if (e.target === reportModal) {
         reportModal.style.display = 'none';
@@ -563,21 +916,9 @@
       }
     });
 
-    // Initialize local video (webcam)
-    async function initializeLocalVideo() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true
-        });
-        document.getElementById('localVideo').srcObject = stream;
-      } catch (error) {
-        console.error('Error accessing media devices:', error);
-        statusMessage.textContent = 'Camera/microphone access denied';
-      }
-    }
-
-    // Check if report button should be enabled
+    // ===================================
+    // REPORT BUTTON SETTINGS
+    // ===================================
     async function checkReportButtonSetting() {
       try {
         const response = await fetch('/wp-json/tossee/v1/settings/report-button', {
@@ -587,18 +928,27 @@
         const data = await response.json();
 
         if (data.success && !data.enabled) {
-          // Hide the report button if disabled by admin
           reportBtn.style.display = 'none';
         }
       } catch (error) {
         console.error('Error checking report button setting:', error);
-        // Default to showing the button if there's an error
       }
     }
 
-    // Initialize on page load
-    initializeLocalVideo();
-    checkReportButtonSetting();
+    // ===================================
+    // START APPLICATION
+    // ===================================
+    window.addEventListener('load', init);
+
+    // Handle page unload
+    window.addEventListener('beforeunload', () => {
+      if (isConnected && signalingSocket) {
+        signalingSocket.send(JSON.stringify({
+          type: 'disconnect',
+          to: partnerId
+        }));
+      }
+    });
   </script>
 </body>
 </html>
