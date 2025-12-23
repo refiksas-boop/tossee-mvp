@@ -1,118 +1,262 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="lt">
 <head>
-  <meta charset="UTF-8">
-  <title>Chat – Tossee</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Tossee Chat</title>
 
   <style>
-    body {
+    :root {
+      --header-h: 60px;
+      --accent: #140d42;
+      --chat-bg: #140d42;
+      --bg: #0a0033;
+    }
+
+    html, body {
+      height: 100%;
       margin: 0;
+    }
+
+    body {
       font-family: Arial, sans-serif;
-      background: #140D42;
+      background: var(--bg);
       color: #fff;
+      display: flex;
+      flex-direction: column;
       overflow: hidden;
     }
 
-    /* Chat Container */
-    .chat-container {
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-    }
-
-    /* Video Area */
-    .video-area {
-      flex: 1;
+    header {
+      height: var(--header-h);
+      background: var(--accent);
       display: flex;
       justify-content: center;
       align-items: center;
-      background: #000;
       position: relative;
+      z-index: 1200;
+    }
+    .logo img { height: 40px; display:block; }
+
+    .right-icon {
+      position: absolute;
+      top: 50%;
+      right: 15px;
+      transform: translateY(-50%);
+      font-size: 22px;
+      cursor: pointer;
+      user-select: none;
     }
 
+    .video-wrapper {
+      position: relative;
+      flex: 1;
+      background: black;
+      overflow: hidden;
+    }
     #remoteVideo {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      background: black;
+      display: block;
+    }
+
+    #localVideoWrapper {
+      position: absolute;
+      width: 25%;
+      max-width: 320px;
+      aspect-ratio: 16/9;
+      bottom: 15px;
+      right: 15px;
+      border-radius: 10px;
+      border: 2px solid #fff;
+      background: #222;
+      cursor: move;
+      z-index: 1600;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    @media (max-width: 480px) {
+      #localVideoWrapper {
+        width: 40%;
+        max-width: 220px;
+        bottom: 12px;
+        right: 12px;
+      }
     }
 
     #localVideo {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      width: 200px;
-      height: 150px;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
-      border: 2px solid #00c6ff;
+      display: block;
       border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      background: #111;
+      pointer-events: none;
     }
 
-    /* Status Messages */
-    .status-message {
+    #localVideo::-webkit-media-controls,
+    #localVideo::-webkit-media-controls-enclosure,
+    #localVideo::-webkit-media-controls-overlay-play-button,
+    #localVideo::-webkit-media-controls-start-playback-button,
+    #localVideo::-webkit-media-controls-panel {
+      display: none !important;
+      -webkit-appearance: none;
+    }
+
+    .video-controls {
       position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 1700;
+      pointer-events: none;
+    }
+    .icon-btn {
+      pointer-events: auto;
+      background: rgba(0,0,0,0.6);
+      border: none;
+      font-size: 18px;
+      color: white;
+      cursor: pointer;
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .icon-btn.off::before,
+    .icon-btn.off::after {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 2px;
+      background: red;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 24px;
-      font-weight: 600;
-      color: #00c6ff;
-      text-align: center;
+      transform-origin: center;
     }
+    .icon-btn.off::before { transform: translate(-50%, -50%) rotate(45deg); }
+    .icon-btn.off::after  { transform: translate(-50%, -50%) rotate(-45deg); }
 
-    /* Controls Bar */
-    .controls-bar {
-      background: rgba(20, 13, 66, 0.95);
-      padding: 20px;
+    /* Menu */
+    .menu-sidebar {
+      position: fixed;
+      top: var(--header-h);
+      right: -240px;
+      width: 220px;
+      height: calc(100% - var(--header-h));
+      padding: 8px;
+      transition: right 0.28s ease;
+      z-index: 1400;
+      overflow-y: auto;
+      text-align: right;
+      pointer-events: none;
+      background: none;
+    }
+    .menu-sidebar.active { right: 0; pointer-events: auto; }
+    .menu-sidebar a {
+      display:block; color:#fff; text-decoration:none; padding:10px 6px;
+    }
+    .menu-sidebar a:hover { color: #00c6ff; }
+
+    /* Chat - FIXED */
+    .chat-area {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
       display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 20px;
-      border-top: 2px solid rgba(0, 198, 255, 0.3);
+      flex-direction: column;
+      max-height: 40%;
+      background: transparent;
+      z-index: 900;
+      transition: transform 0.4s ease;
+    }
+    .chat-area.hidden .messages,
+    .chat-area.hidden .input-box {
+      display: none;
     }
 
-    .control-btn {
-      background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+    .messages {
+      flex:1;
+      padding:10px;
+      overflow-y:auto;
+      max-height: 5.5em;
+      background: transparent;
+    }
+    .message {
+      margin-bottom:10px;
+      color:#fff;
+      font-size:15px;
+      line-height:1.4em;
+      text-align: left;
+    }
+
+    .input-area {
+      padding:8px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      background: transparent;
+    }
+    .action-buttons {
+      display:flex;
+      gap:10px;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+    .action-buttons button {
+      border:none;
+      border-radius:20px;
+      padding:6px 12px;
+      cursor:pointer;
+      font-size:14px;
+      font-weight:bold;
+    }
+    .emoji-btn{ background:#444; color:#fff; }
+    .next-btn{ background:#555; color:#fff; }
+    .report-btn{ background:red; color:#fff; }
+    .toggle-chat-btn{ background:#333; color:#fff; }
+
+    .input-box {
+      display:flex; gap:8px;
+    }
+    textarea {
+      flex:1; border-radius:20px; border:none; background:#fff; color:#000;
+      outline:none; resize:none; padding:8px;
+      min-height:32px; max-height:100px;
+    }
+    .send-btn {
+      border:none; border-radius:50%; padding:8px; font-size:16px;
+      cursor:pointer; background:#007bff; color:#fff;
+    }
+
+    /* Status Box */
+    .status-box {
+      position: fixed;
+      bottom: 80px;
+      right: 16px;
+      background: #2563eb;
       color: white;
-      border: none;
-      padding: 12px 24px;
-      font-size: 16px;
-      font-weight: 700;
+      padding: 10px 16px;
       border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      font-size: 14px;
+      z-index: 9999;
     }
 
-    .control-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0, 198, 255, 0.4);
-    }
-
-    .control-btn.danger {
-      background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
-    }
-
-    .control-btn.danger:hover {
-      box-shadow: 0 6px 20px rgba(255, 68, 68, 0.4);
-    }
-
-    .control-btn.warning {
-      background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-    }
-
-    .control-btn.warning:hover {
-      box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
-    }
-
-    /* Report Modal */
-    .tossee-modal {
+    /* ========================================
+       REPORT MODAL STYLES
+    ======================================== */
+    .report-modal {
       display: none;
       position: fixed;
-      z-index: 999;
+      z-index: 10000;
       left: 0;
       top: 0;
       width: 100%;
@@ -122,7 +266,7 @@
       align-items: center;
     }
 
-    .modal-content {
+    .report-modal-content {
       background: #140D42;
       border: 2px solid #00c6ff;
       border-radius: 16px;
@@ -134,11 +278,11 @@
       box-shadow: 0 8px 32px rgba(0, 198, 255, 0.3);
     }
 
-    .modal-header {
+    .report-modal-header {
       margin-bottom: 20px;
     }
 
-    .modal-title {
+    .report-modal-title {
       font-size: 26px;
       font-weight: 800;
       color: #00c6ff;
@@ -146,7 +290,7 @@
       text-align: center;
     }
 
-    .modal-description {
+    .report-modal-description {
       font-size: 16px;
       color: #fff;
       margin: 0 0 30px 0;
@@ -154,7 +298,6 @@
       line-height: 1.5;
     }
 
-    /* Report Options */
     .report-options {
       margin-bottom: 25px;
     }
@@ -197,19 +340,18 @@
       margin: 0;
     }
 
-    /* Optional Message Field */
-    .optional-message {
+    .report-optional-message {
       margin-bottom: 30px;
     }
 
-    .optional-message label {
+    .report-optional-message label {
       display: block;
       margin-bottom: 8px;
       font-weight: 600;
       color: #00c6ff;
     }
 
-    .optional-message textarea {
+    .report-optional-message textarea {
       width: 100%;
       min-height: 100px;
       padding: 12px;
@@ -223,24 +365,23 @@
       box-sizing: border-box;
     }
 
-    .optional-message textarea:focus {
+    .report-optional-message textarea:focus {
       outline: none;
       border-color: #00c6ff;
       box-shadow: 0 0 10px rgba(0, 198, 255, 0.3);
     }
 
-    .optional-message textarea::placeholder {
+    .report-optional-message textarea::placeholder {
       color: rgba(255, 255, 255, 0.5);
     }
 
-    /* Modal Buttons */
-    .modal-actions {
+    .report-modal-actions {
       display: flex;
       gap: 15px;
       justify-content: center;
     }
 
-    .modal-btn {
+    .report-modal-btn {
       background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
       color: white;
       border: none;
@@ -254,27 +395,26 @@
       letter-spacing: 0.5px;
     }
 
-    .modal-btn:hover:not(:disabled) {
+    .report-modal-btn:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(0, 198, 255, 0.4);
     }
 
-    .modal-btn:disabled {
+    .report-modal-btn:disabled {
       background: #555;
       cursor: not-allowed;
       opacity: 0.5;
     }
 
-    .modal-btn.cancel {
+    .report-modal-btn.cancel {
       background: linear-gradient(135deg, #666 0%, #444 100%);
     }
 
-    .modal-btn.cancel:hover {
+    .report-modal-btn.cancel:hover {
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
     }
 
-    /* Success Message */
-    .success-message {
+    .report-success-message {
       display: none;
       position: fixed;
       top: 50%;
@@ -287,668 +427,748 @@
       font-size: 18px;
       font-weight: 700;
       text-align: center;
-      z-index: 1000;
+      z-index: 10001;
       box-shadow: 0 8px 32px rgba(0, 198, 255, 0.5);
-    }
-
-    /* Responsive Design */
-    @media (max-width: 768px) {
-      #localVideo {
-        width: 120px;
-        height: 90px;
-        bottom: 10px;
-        right: 10px;
-      }
-
-      .modal-content {
-        padding: 25px;
-      }
-
-      .controls-bar {
-        flex-wrap: wrap;
-        padding: 15px;
-        gap: 10px;
-      }
-
-      .control-btn {
-        padding: 10px 18px;
-        font-size: 14px;
-      }
     }
   </style>
 </head>
+
 <body>
 
-  <div class="chat-container">
-    <!-- Video Area -->
-    <div class="video-area">
-      <video id="remoteVideo" autoplay playsinline></video>
-      <video id="localVideo" autoplay playsinline muted></video>
-      <div class="status-message" id="statusMessage">Initializing...</div>
-    </div>
+<header>
+  <div class="logo"><img src="logo.png" alt="Tossee Logo"></div>
+  <span class="right-icon" id="menuToggle">☰</span>
+</header>
 
-    <!-- Controls Bar -->
-    <div class="controls-bar">
-      <button class="control-btn" id="nextBtn">Next</button>
-      <button class="control-btn danger" id="endBtn">End Chat</button>
-      <button class="control-btn warning" id="reportBtn">Report</button>
+<div class="video-wrapper">
+  <video id="remoteVideo" autoplay playsinline muted="false"></video>
+
+  <div id="localVideoWrapper">
+    <video id="localVideo" autoplay playsinline muted></video>
+    <div class="video-controls">
+      <button id="toggleCamera" class="icon-btn" title="Toggle camera">📷</button>
+      <button id="toggleMic" class="icon-btn" title="Toggle mic">🎤</button>
+    </div>
+  </div>
+</div>
+
+<div class="menu-sidebar" id="menuSidebar">
+  <a href="https://tossee.com/my-account">My Account</a>
+  <a href="https://tossee.com/pricing-plans">Pricing Plans</a>
+
+  <div class="submenu">
+    <a href="#" id="policiesToggle">Policies ▼</a>
+    <div class="submenu-items" id="policiesMenu" style="display:none">
+      <a href="https://tossee.com/cookie-policy">Cookie Policy</a>
+      <a href="https://tossee.com/privacy-policy-2">Privacy Policy</a>
+      <a href="https://tossee.com/terms-of-use">Terms of Use</a>
     </div>
   </div>
 
-  <!-- Report Modal -->
-  <div id="reportModal" class="tossee-modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 class="modal-title">Report Inappropriate Behavior</h2>
-        <p class="modal-description">
-          Please help us keep Tossee safe.<br>
-          Select a reason below. Writing a message is optional.
-        </p>
+  <a href="https://tossee.com/contact">Contact</a>
+  <a href="https://tossee.com/?tossee_logout=1">Logout</a>
+</div>
+
+<div id="chatArea" class="chat-area">
+  <div class="messages" id="messages"></div>
+
+  <div class="input-area">
+    <div class="action-buttons">
+      <button class="emoji-btn">😊</button>
+      <button class="next-btn" id="nextBtn">➡ Next</button>
+      <button class="report-btn" id="reportBtn">Report</button>
+      <button class="toggle-chat-btn" id="toggleChat">💬</button>
+    </div>
+
+    <div class="input-box">
+      <textarea id="chatInput" placeholder="Type a message..."></textarea>
+      <button class="send-btn" id="sendBtn">➤</button>
+    </div>
+  </div>
+</div>
+
+<div id="statusBox" class="status-box" style="display:none;"></div>
+
+<!-- REPORT MODAL -->
+<div id="reportModal" class="report-modal">
+  <div class="report-modal-content">
+    <div class="report-modal-header">
+      <h2 class="report-modal-title">Report Inappropriate Behavior</h2>
+      <p class="report-modal-description">
+        Please help us keep Tossee safe.<br>
+        Select a reason below. Writing a message is optional.
+      </p>
+    </div>
+
+    <form id="reportForm">
+      <div class="report-options">
+        <div class="report-option" data-value="harassment">
+          <input type="radio" name="reportReason" value="harassment" id="reportOpt1">
+          <label for="reportOpt1">Harassment or offensive behavior</label>
+        </div>
+        <div class="report-option" data-value="nudity">
+          <input type="radio" name="reportReason" value="nudity" id="reportOpt2">
+          <label for="reportOpt2">Nudity or sexual content</label>
+        </div>
+        <div class="report-option" data-value="spam">
+          <input type="radio" name="reportReason" value="spam" id="reportOpt3">
+          <label for="reportOpt3">Spam, scam, or advertising</label>
+        </div>
       </div>
 
-      <form id="reportForm">
-        <div class="report-options">
-          <div class="report-option" data-value="harassment">
-            <input type="radio" name="reportReason" value="harassment" id="opt1">
-            <label for="opt1">Harassment or offensive behavior</label>
-          </div>
-          <div class="report-option" data-value="nudity">
-            <input type="radio" name="reportReason" value="nudity" id="opt2">
-            <label for="opt2">Nudity or sexual content</label>
-          </div>
-          <div class="report-option" data-value="spam">
-            <input type="radio" name="reportReason" value="spam" id="opt3">
-            <label for="opt3">Spam, scam, or advertising</label>
-          </div>
-        </div>
+      <div class="report-optional-message">
+        <label for="reportAdditionalDetails">Additional details (optional)</label>
+        <textarea
+          id="reportAdditionalDetails"
+          name="additionalDetails"
+          placeholder="Briefly describe what happened (optional)"
+        ></textarea>
+      </div>
 
-        <div class="optional-message">
-          <label for="additionalDetails">Additional details (optional)</label>
-          <textarea
-            id="additionalDetails"
-            name="additionalDetails"
-            placeholder="Briefly describe what happened (optional)"
-          ></textarea>
-        </div>
-
-        <div class="modal-actions">
-          <button type="button" class="modal-btn cancel" id="cancelReportBtn">Cancel</button>
-          <button type="submit" class="modal-btn" id="submitReportBtn" disabled>Report</button>
-        </div>
-      </form>
-    </div>
+      <div class="report-modal-actions">
+        <button type="button" class="report-modal-btn cancel" id="cancelReportBtn">Cancel</button>
+        <button type="submit" class="report-modal-btn" id="submitReportBtn" disabled>Report</button>
+      </div>
+    </form>
   </div>
+</div>
 
-  <!-- Success Message -->
-  <div id="successMessage" class="success-message">
-    Thank you for your report.<br>We'll review it shortly.
-  </div>
+<!-- SUCCESS MESSAGE -->
+<div id="reportSuccessMessage" class="report-success-message">
+  Thank you for your report.<br>We'll review it shortly.
+</div>
 
-  <script>
-    // ===================================
-    // CONFIGURATION
-    // ===================================
-    const SIGNALING_SERVER = 'wss://your-signaling-server.com'; // Replace with your signaling server
-    const ICE_SERVERS = [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' }
-    ];
+<script>
+// ================================================================
+// UI CONTROLS
+// ================================================================
+const menuToggle = document.getElementById("menuToggle");
+const menuSidebar = document.getElementById("menuSidebar");
+menuToggle.addEventListener("click", () => menuSidebar.classList.toggle("active"));
 
-    // ===================================
-    // GLOBAL VARIABLES
-    // ===================================
-    let localStream = null;
-    let remoteStream = null;
-    let peerConnection = null;
-    let dataChannel = null;
-    let signalingSocket = null;
-    let currentUserId = null;
-    let partnerId = null;
-    let isConnected = false;
-    let isSearching = false;
+const policiesToggle = document.getElementById("policiesToggle");
+const policiesMenu = document.getElementById("policiesMenu");
+policiesToggle.addEventListener("click", e => {
+  e.preventDefault();
+  policiesMenu.style.display = (policiesMenu.style.display === "block") ? "none" : "block";
+});
 
-    // ===================================
-    // DOM ELEMENTS
-    // ===================================
-    const localVideo = document.getElementById('localVideo');
-    const remoteVideo = document.getElementById('remoteVideo');
-    const statusMessage = document.getElementById('statusMessage');
-    const nextBtn = document.getElementById('nextBtn');
-    const endBtn = document.getElementById('endBtn');
-    const reportBtn = document.getElementById('reportBtn');
-    const reportModal = document.getElementById('reportModal');
-    const reportForm = document.getElementById('reportForm');
-    const cancelReportBtn = document.getElementById('cancelReportBtn');
-    const submitReportBtn = document.getElementById('submitReportBtn');
-    const successMessage = document.getElementById('successMessage');
-    const reportOptions = document.querySelectorAll('.report-option');
-    const radioButtons = document.querySelectorAll('input[name="reportReason"]');
+const localVideoWrapper = document.getElementById("localVideoWrapper");
+const localVideo = document.getElementById("localVideo");
+const remoteVideo = document.getElementById("remoteVideo");
+const cameraBtn = document.getElementById("toggleCamera");
+const micBtn = document.getElementById("toggleMic");
+const chatArea = document.getElementById("chatArea");
+const toggleChat = document.getElementById("toggleChat");
+const sendBtn = document.getElementById("sendBtn");
+const chatInput = document.getElementById("chatInput");
+const messages = document.getElementById("messages");
+const nextBtn = document.getElementById("nextBtn");
+const statusBox = document.getElementById("statusBox");
 
-    // ===================================
-    // INITIALIZATION
-    // ===================================
-    async function init() {
-      try {
-        // Get user ID from URL or session
-        const urlParams = new URLSearchParams(window.location.search);
-        currentUserId = urlParams.get('uid') || sessionStorage.getItem('tossee_id');
+// ================================================================
+// USER ID from URL
+// ================================================================
+const params = new URLSearchParams(window.location.search);
+const userId = params.get("uid");
 
-        if (!currentUserId) {
-          statusMessage.textContent = 'Error: No user ID found';
-          return;
-        }
+if (!userId) {
+  alert("User not authorized. Missing uid.");
+  window.location.href = "https://tossee.com/login";
+}
 
-        // Initialize local media
-        await initializeLocalMedia();
+console.log("[USER ID]", userId);
 
-        // Connect to signaling server
-        await connectToSignalingServer();
+// ================================================================
+// STATUS BOX
+// ================================================================
+function showStatus(text) {
+  statusBox.textContent = text;
+  statusBox.style.display = "block";
+}
 
-        // Check report button settings
-        await checkReportButtonSetting();
+function hideStatus() {
+  statusBox.style.display = "none";
+}
 
-        // Start searching for a partner
-        startSearching();
+// ================================================================
+// LOCAL STREAM SETUP
+// ================================================================
+let localStream = null;
 
-      } catch (error) {
-        console.error('Initialization error:', error);
-        statusMessage.textContent = 'Initialization failed. Please refresh.';
-      }
+async function startLocalVideo() {
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    localVideo.srcObject = localStream;
+    console.log("[LOCAL VIDEO] Started");
+  } catch (err) {
+    console.error('[LOCAL VIDEO] Error:', err);
+    showStatus("Camera/Mic access denied!");
+  }
+}
+
+// Start immediately
+startLocalVideo();
+
+// ================================================================
+// CAMERA/MIC TOGGLE
+// ================================================================
+cameraBtn.addEventListener("click", () => {
+  if (!localStream) return;
+  const track = localStream.getVideoTracks()[0];
+  track.enabled = !track.enabled;
+  cameraBtn.classList.toggle("off", !track.enabled);
+  localVideo.style.filter = track.enabled ? "none" : "brightness(0.2)";
+});
+
+micBtn.addEventListener("click", () => {
+  if (!localStream) return;
+  const track = localStream.getAudioTracks()[0];
+  track.enabled = !track.enabled;
+  micBtn.classList.toggle("off", !track.enabled);
+});
+
+// ================================================================
+// CHAT - WITH DATA CHANNEL
+// ================================================================
+let dataChannel = null;
+
+sendBtn.addEventListener("click", sendMessage);
+chatInput.addEventListener("keypress", e => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+
+  // Display in UI
+  addMessageToUI(text);
+
+  // Send via data channel
+  if (dataChannel && dataChannel.readyState === 'open') {
+    dataChannel.send(JSON.stringify({
+      type: 'message',
+      text: text,
+      from: userId,
+      timestamp: Date.now()
+    }));
+    console.log("[CHAT] Sent message:", text);
+  } else {
+    console.warn("[CHAT] Data channel not ready!");
+  }
+
+  chatInput.value = "";
+}
+
+function addMessageToUI(text) {
+  const msg = document.createElement("div");
+  msg.className = "message";
+  msg.textContent = text;
+  messages.appendChild(msg);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+toggleChat.addEventListener("click", () => chatArea.classList.toggle("hidden"));
+
+// ================================================================
+// DRAGGABLE PIP
+// ================================================================
+(function makeDraggable(el) {
+  let isDown = false, startX = 0, startY = 0, origX = 0, origY = 0;
+
+  el.addEventListener('mousedown', e => {
+    if (e.target.closest('.icon-btn')) return;
+    const rect = el.getBoundingClientRect();
+    startX = e.clientX;
+    startY = e.clientY;
+    origX = rect.left;
+    origY = rect.top;
+    isDown = true;
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!isDown) return;
+    el.style.left = (origX + e.clientX - startX) + "px";
+    el.style.top = (origY + e.clientY - startY) + "px";
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+  });
+
+  document.addEventListener('mouseup', () => isDown = false);
+})(localVideoWrapper);
+
+document.addEventListener('gesturestart', e => e.preventDefault());
+
+// ================================================================
+// WEBRTC LOGIC
+// ================================================================
+let pc = null;
+let currentRoomId = null;
+let partnerId = null;
+
+const rtcConfig = {
+  iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+};
+
+// ================================================================
+// MATCHING
+// ================================================================
+async function startMatching() {
+  try {
+    const res = await fetch("https://tossee.com/chat/api/matching.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: userId, action: "join" })
+    });
+
+    const data = await res.json();
+    console.log("[MATCHING]", data);
+
+    if (data.status === "waiting") {
+      showStatus("Waiting for partner... (" + (data.queueSize || 1) + " in queue)");
+      setTimeout(() => checkMatching(), 2000);
+      return;
     }
 
-    // ===================================
-    // LOCAL MEDIA
-    // ===================================
-    async function initializeLocalMedia() {
-      try {
-        statusMessage.textContent = 'Requesting camera and microphone...';
+    if (data.status === "matched") {
+      currentRoomId = data.roomId;
+      partnerId = data.partnerId;
+      console.log("[MATCHED] Room:", currentRoomId, "Partner:", partnerId);
+      showStatus("Partner found! Connecting...");
+      await setupWebRTC(true);
+      pollSignals();
+    }
 
-        localStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          },
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          }
+  } catch (err) {
+    console.error("[MATCHING] Error:", err);
+    showStatus("Network error. Retrying...");
+    setTimeout(startMatching, 3000);
+  }
+}
+
+async function checkMatching() {
+  try {
+    const res = await fetch("https://tossee.com/chat/api/matching.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: userId, action: "check" })
+    });
+
+    const data = await res.json();
+    console.log("[CHECK]", data);
+
+    if (data.status === "waiting") {
+      showStatus("Waiting for partner... (" + (data.queueSize || 1) + " in queue)");
+      setTimeout(checkMatching, 2000);
+      return;
+    }
+
+    if (data.status === "matched") {
+      currentRoomId = data.roomId;
+      partnerId = data.partnerId;
+      console.log("[MATCHED] Room:", currentRoomId, "Partner:", partnerId);
+      showStatus("Partner found! Connecting...");
+      await setupWebRTC(false);
+      pollSignals();
+    }
+
+  } catch (err) {
+    console.error("[CHECK] Error:", err);
+    setTimeout(checkMatching, 2000);
+  }
+}
+
+// ================================================================
+// WEBRTC SETUP
+// ================================================================
+async function setupWebRTC(isCaller) {
+  if (!localStream) {
+    await startLocalVideo();
+  }
+
+  pc = new RTCPeerConnection(rtcConfig);
+
+  // CREATE DATA CHANNEL (for chat messages)
+  if (isCaller) {
+    dataChannel = pc.createDataChannel("chat");
+    setupDataChannel();
+    console.log("[DATA CHANNEL] Created (caller)");
+  }
+
+  // RECEIVE DATA CHANNEL (for chat messages)
+  pc.ondatachannel = (event) => {
+    dataChannel = event.channel;
+    setupDataChannel();
+    console.log("[DATA CHANNEL] Received (receiver)");
+  };
+
+  // Add local tracks
+  localStream.getTracks().forEach(track => {
+    pc.addTrack(track, localStream);
+  });
+
+  // RECEIVE REMOTE TRACK (with AUDIO FIX)
+  pc.ontrack = (evt) => {
+    console.log("[WEBRTC] Remote track received!", evt.track.kind);
+
+    if (!remoteVideo.srcObject) {
+      remoteVideo.srcObject = evt.streams[0];
+
+      // AUDIO FIX: Unmute and play
+      remoteVideo.muted = false;
+      remoteVideo.volume = 1.0;
+
+      const playPromise = remoteVideo.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          console.log("[AUDIO] ✅ Playing with sound! Volume:", remoteVideo.volume);
+        }).catch(err => {
+          console.log("[AUDIO] ❌ Autoplay blocked:", err.name);
+          showStatus("🔊 Click anywhere to enable audio");
+
+          const enableAudio = () => {
+            remoteVideo.muted = false;
+            remoteVideo.volume = 1.0;
+            remoteVideo.play().then(() => {
+              console.log("[AUDIO] ✅ Audio enabled after click!");
+              hideStatus();
+            });
+            document.body.removeEventListener('click', enableAudio);
+          };
+
+          document.body.addEventListener('click', enableAudio);
         });
-
-        localVideo.srcObject = localStream;
-        statusMessage.textContent = 'Ready to connect...';
-
-      } catch (error) {
-        console.error('Media access error:', error);
-        statusMessage.textContent = 'Camera/microphone access denied';
-        throw error;
       }
     }
 
-    // ===================================
-    // SIGNALING SERVER CONNECTION
-    // ===================================
-    async function connectToSignalingServer() {
-      return new Promise((resolve, reject) => {
-        statusMessage.textContent = 'Connecting to server...';
+    showStatus("Connected! Enjoy your chat!");
+    setTimeout(hideStatus, 3000);
+  };
 
-        signalingSocket = new WebSocket(SIGNALING_SERVER);
-
-        signalingSocket.onopen = () => {
-          console.log('Connected to signaling server');
-          // Register user
-          signalingSocket.send(JSON.stringify({
-            type: 'register',
-            userId: currentUserId
-          }));
-          resolve();
-        };
-
-        signalingSocket.onmessage = handleSignalingMessage;
-
-        signalingSocket.onerror = (error) => {
-          console.error('WebSocket error:', error);
-          statusMessage.textContent = 'Connection error';
-          reject(error);
-        };
-
-        signalingSocket.onclose = () => {
-          console.log('Disconnected from signaling server');
-          if (isConnected) {
-            handleDisconnect();
-          }
-        };
-      });
+  // ICE candidates
+  pc.onicecandidate = (evt) => {
+    if (evt.candidate) {
+      console.log("[ICE] Sending candidate");
+      sendSignal("candidate", evt.candidate);
     }
+  };
 
-    // ===================================
-    // SIGNALING MESSAGE HANDLER
-    // ===================================
-    async function handleSignalingMessage(event) {
-      const message = JSON.parse(event.data);
+  // Connection state
+  pc.onconnectionstatechange = () => {
+    console.log("[WEBRTC] Connection state:", pc.connectionState);
+    if (pc.connectionState === "failed") {
+      showStatus("Connection failed. Click Next to try again.");
+    }
+  };
 
-      switch (message.type) {
-        case 'match-found':
-          partnerId = message.partnerId;
-          await handleMatchFound(message);
-          break;
+  // If caller, create offer
+  if (isCaller) {
+    console.log("[WEBRTC] Creating offer...");
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    await sendSignal("offer", offer);
+  }
+}
 
-        case 'offer':
-          await handleOffer(message);
-          break;
+// ================================================================
+// DATA CHANNEL SETUP
+// ================================================================
+function setupDataChannel() {
+  if (!dataChannel) return;
 
-        case 'answer':
-          await handleAnswer(message);
-          break;
+  dataChannel.onopen = () => {
+    console.log("[DATA CHANNEL] Opened! Chat ready.");
+  };
 
-        case 'ice-candidate':
-          await handleIceCandidate(message);
-          break;
+  dataChannel.onclose = () => {
+    console.log("[DATA CHANNEL] Closed");
+  };
 
-        case 'partner-disconnected':
-          handlePartnerDisconnected();
-          break;
-
-        case 'no-matches':
-          statusMessage.textContent = 'Waiting for someone to connect...';
-          break;
-
-        default:
-          console.log('Unknown message type:', message.type);
+  dataChannel.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === 'message') {
+        console.log("[CHAT] Received message:", data.text);
+        addMessageToUI(data.text);
       }
+    } catch (e) {
+      console.error("[CHAT] Error parsing message:", e);
     }
+  };
+}
 
-    // ===================================
-    // MATCHING & CONNECTION
-    // ===================================
-    function startSearching() {
-      if (isSearching) return;
+// ================================================================
+// SIGNALING
+// ================================================================
+async function sendSignal(type, data) {
+  if (!currentRoomId) {
+    console.warn("[SIGNAL] No room ID!");
+    return;
+  }
 
-      isSearching = true;
-      statusMessage.textContent = 'Searching for a chat partner...';
+  try {
+    await fetch("https://tossee.com/chat/api/signaling.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        roomId: currentRoomId,
+        type: type,
+        data: data,
+        userId: userId
+      })
+    });
+    console.log("[SIGNAL] Sent:", type);
+  } catch (e) {
+    console.error("[SIGNAL] Error:", e);
+  }
+}
 
-      signalingSocket.send(JSON.stringify({
-        type: 'find-match',
-        userId: currentUserId
-      }));
-    }
+async function pollSignals() {
+  if (!pc || !currentRoomId) return;
 
-    async function handleMatchFound(message) {
-      console.log('Match found:', message.partnerId);
-      statusMessage.textContent = 'Match found! Connecting...';
-      isSearching = false;
-      partnerId = message.partnerId;
-
-      // Create peer connection
-      await createPeerConnection();
-
-      // If we are the initiator, create and send offer
-      if (message.initiator) {
-        await createAndSendOffer();
-      }
-    }
-
-    // ===================================
-    // WEBRTC PEER CONNECTION
-    // ===================================
-    async function createPeerConnection() {
-      peerConnection = new RTCPeerConnection({
-        iceServers: ICE_SERVERS
-      });
-
-      // Add local stream tracks to peer connection
-      localStream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, localStream);
-      });
-
-      // Handle incoming remote stream
-      peerConnection.ontrack = (event) => {
-        console.log('Received remote track');
-        if (!remoteStream) {
-          remoteStream = new MediaStream();
-          remoteVideo.srcObject = remoteStream;
-        }
-        remoteStream.addTrack(event.track);
-      };
-
-      // Handle ICE candidates
-      peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-          signalingSocket.send(JSON.stringify({
-            type: 'ice-candidate',
-            candidate: event.candidate,
-            to: partnerId
-          }));
-        }
-      };
-
-      // Handle connection state changes
-      peerConnection.onconnectionstatechange = () => {
-        console.log('Connection state:', peerConnection.connectionState);
-
-        switch (peerConnection.connectionState) {
-          case 'connected':
-            isConnected = true;
-            statusMessage.textContent = 'Connected';
-            setTimeout(() => {
-              statusMessage.style.display = 'none';
-            }, 2000);
-            break;
-
-          case 'disconnected':
-          case 'failed':
-          case 'closed':
-            handleDisconnect();
-            break;
-        }
-      };
-
-      // Create data channel for text chat (optional)
-      if (peerConnection.connectionState === 'new') {
-        dataChannel = peerConnection.createDataChannel('chat');
-        setupDataChannel();
-      }
-
-      peerConnection.ondatachannel = (event) => {
-        dataChannel = event.channel;
-        setupDataChannel();
-      };
-    }
-
-    function setupDataChannel() {
-      dataChannel.onopen = () => {
-        console.log('Data channel opened');
-      };
-
-      dataChannel.onmessage = (event) => {
-        console.log('Received message:', event.data);
-        // Handle text chat messages here if needed
-      };
-
-      dataChannel.onclose = () => {
-        console.log('Data channel closed');
-      };
-    }
-
-    // ===================================
-    // WEBRTC OFFER/ANSWER
-    // ===================================
-    async function createAndSendOffer() {
-      try {
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
-
-        signalingSocket.send(JSON.stringify({
-          type: 'offer',
-          offer: offer,
-          to: partnerId
-        }));
-      } catch (error) {
-        console.error('Error creating offer:', error);
-      }
-    }
-
-    async function handleOffer(message) {
-      try {
-        await createPeerConnection();
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(message.offer));
-
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
-
-        signalingSocket.send(JSON.stringify({
-          type: 'answer',
-          answer: answer,
-          to: message.from
-        }));
-
-        partnerId = message.from;
-      } catch (error) {
-        console.error('Error handling offer:', error);
-      }
-    }
-
-    async function handleAnswer(message) {
-      try {
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(message.answer));
-      } catch (error) {
-        console.error('Error handling answer:', error);
-      }
-    }
-
-    async function handleIceCandidate(message) {
-      try {
-        if (peerConnection && message.candidate) {
-          await peerConnection.addIceCandidate(new RTCIceCandidate(message.candidate));
-        }
-      } catch (error) {
-        console.error('Error adding ICE candidate:', error);
-      }
-    }
-
-    // ===================================
-    // DISCONNECT HANDLING
-    // ===================================
-    function handleDisconnect() {
-      isConnected = false;
-      partnerId = null;
-
-      // Close peer connection
-      if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-      }
-
-      // Clear remote video
-      if (remoteStream) {
-        remoteStream.getTracks().forEach(track => track.stop());
-        remoteStream = null;
-        remoteVideo.srcObject = null;
-      }
-
-      // Clear data channel
-      if (dataChannel) {
-        dataChannel.close();
-        dataChannel = null;
-      }
-
-      statusMessage.style.display = 'block';
-      statusMessage.textContent = 'Partner disconnected';
-
-      // Auto-search for next partner after 2 seconds
-      setTimeout(() => {
-        startSearching();
-      }, 2000);
-    }
-
-    function handlePartnerDisconnected() {
-      console.log('Partner disconnected');
-      handleDisconnect();
-    }
-
-    // ===================================
-    // CONTROL BUTTONS
-    // ===================================
-    nextBtn.addEventListener('click', () => {
-      if (isConnected) {
-        // Notify server we're disconnecting
-        signalingSocket.send(JSON.stringify({
-          type: 'disconnect',
-          to: partnerId
-        }));
-      }
-
-      handleDisconnect();
-      startSearching();
+  try {
+    const res = await fetch("https://tossee.com/chat/api/signaling.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        roomId: currentRoomId,
+        type: "check",
+        userId: userId
+      })
     });
 
-    endBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to end the chat?')) {
-        if (isConnected) {
-          signalingSocket.send(JSON.stringify({
-            type: 'disconnect',
-            to: partnerId
-          }));
+    const data = await res.json();
+
+    if (!data.ok || !data.roomData) {
+      setTimeout(pollSignals, 1500);
+      return;
+    }
+
+    const room = data.roomData;
+
+    // Process offer (if we're receiver)
+    if (!pc.currentRemoteDescription && room.offers && room.offers.length > 0) {
+      const offer = room.offers[room.offers.length - 1];
+      console.log("[SIGNAL] Received offer, creating answer...");
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await sendSignal("answer", answer);
+    }
+
+    // Process answer (if we're caller)
+    if (room.answers && room.answers.length > 0 && pc.signalingState === "have-local-offer") {
+      const answer = room.answers[room.answers.length - 1];
+      console.log("[SIGNAL] Received answer");
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+    }
+
+    // Process ICE candidates
+    if (room.candidates) {
+      for (const c of room.candidates) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(c));
+        } catch (e) {
+          console.warn("[ICE] Error:", e);
         }
-
-        // Clean up
-        handleDisconnect();
-
-        // Stop local stream
-        if (localStream) {
-          localStream.getTracks().forEach(track => track.stop());
-        }
-
-        // Close signaling connection
-        if (signalingSocket) {
-          signalingSocket.close();
-        }
-
-        // Redirect to home
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 1000);
       }
+    }
+
+  } catch (err) {
+    console.error("[POLL] Error:", err);
+  }
+
+  setTimeout(pollSignals, 1500);
+}
+
+// ================================================================
+// END CALL
+// ================================================================
+function endCall() {
+  console.log("[END CALL]");
+
+  if (dataChannel) {
+    dataChannel.close();
+    dataChannel = null;
+  }
+
+  if (pc) {
+    pc.ontrack = null;
+    pc.onicecandidate = null;
+    pc.ondatachannel = null;
+    pc.close();
+  }
+
+  pc = null;
+  currentRoomId = null;
+  partnerId = null;
+  remoteVideo.srcObject = null;
+
+  // Clear chat messages
+  messages.innerHTML = '';
+
+  hideStatus();
+}
+
+// ================================================================
+// NEXT BUTTON
+// ================================================================
+nextBtn.addEventListener("click", () => {
+  console.log("[NEXT] Clicked");
+  endCall();
+  showStatus("Searching for next partner...");
+  startMatching();
+});
+
+// ================================================================
+// REPORT SYSTEM
+// ================================================================
+const reportBtn = document.getElementById('reportBtn');
+const reportModal = document.getElementById('reportModal');
+const reportForm = document.getElementById('reportForm');
+const cancelReportBtn = document.getElementById('cancelReportBtn');
+const submitReportBtn = document.getElementById('submitReportBtn');
+const reportSuccessMessage = document.getElementById('reportSuccessMessage');
+const reportOptions = document.querySelectorAll('.report-option');
+const reportRadioButtons = document.querySelectorAll('input[name="reportReason"]');
+
+// Open report modal
+reportBtn.addEventListener('click', () => {
+  if (!partnerId) {
+    alert('No active chat to report.');
+    return;
+  }
+  reportModal.style.display = 'flex';
+});
+
+// Close modal
+cancelReportBtn.addEventListener('click', () => {
+  reportModal.style.display = 'none';
+  reportForm.reset();
+  submitReportBtn.disabled = true;
+  reportOptions.forEach(opt => opt.classList.remove('selected'));
+});
+
+// Handle report option selection
+reportOptions.forEach(option => {
+  option.addEventListener('click', function() {
+    const radio = this.querySelector('input[type="radio"]');
+    radio.checked = true;
+    reportOptions.forEach(opt => opt.classList.remove('selected'));
+    this.classList.add('selected');
+    submitReportBtn.disabled = false;
+  });
+});
+
+// Handle radio button change
+reportRadioButtons.forEach(radio => {
+  radio.addEventListener('change', () => {
+    submitReportBtn.disabled = false;
+  });
+});
+
+// Handle form submission
+reportForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const selectedReason = document.querySelector('input[name="reportReason"]:checked');
+  if (!selectedReason) {
+    alert('Please select a reason for reporting.');
+    return;
+  }
+
+  const additionalDetails = document.getElementById('reportAdditionalDetails').value;
+
+  const reportData = {
+    reporter_id: userId,
+    reported_user_id: partnerId,
+    report_reason: selectedReason.value,
+    additional_details: additionalDetails || null
+  };
+
+  try {
+    const response = await fetch('/wp-json/tossee/v1/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(reportData)
     });
 
-    // ===================================
-    // REPORT SYSTEM
-    // ===================================
-    reportBtn.addEventListener('click', () => {
-      if (!partnerId || !isConnected) {
-        alert('No active chat to report.');
-        return;
-      }
-      reportModal.style.display = 'flex';
-    });
+    const result = await response.json();
 
-    cancelReportBtn.addEventListener('click', () => {
+    if (response.ok && result.success) {
       reportModal.style.display = 'none';
+      reportSuccessMessage.style.display = 'block';
+
+      setTimeout(() => {
+        reportSuccessMessage.style.display = 'none';
+      }, 3000);
+
+      // Disconnect after report
+      setTimeout(() => {
+        endCall();
+        showStatus("Searching for next partner...");
+        startMatching();
+      }, 1000);
+
       reportForm.reset();
       submitReportBtn.disabled = true;
       reportOptions.forEach(opt => opt.classList.remove('selected'));
-    });
-
-    reportOptions.forEach(option => {
-      option.addEventListener('click', function() {
-        const radio = this.querySelector('input[type="radio"]');
-        radio.checked = true;
-        reportOptions.forEach(opt => opt.classList.remove('selected'));
-        this.classList.add('selected');
-        submitReportBtn.disabled = false;
-      });
-    });
-
-    radioButtons.forEach(radio => {
-      radio.addEventListener('change', () => {
-        submitReportBtn.disabled = false;
-      });
-    });
-
-    reportForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const selectedReason = document.querySelector('input[name="reportReason"]:checked');
-      if (!selectedReason) {
-        alert('Please select a reason for reporting.');
-        return;
-      }
-
-      const additionalDetails = document.getElementById('additionalDetails').value;
-
-      const reportData = {
-        reporter_id: currentUserId,
-        reported_user_id: partnerId,
-        report_reason: selectedReason.value,
-        additional_details: additionalDetails || null
-      };
-
-      try {
-        const response = await fetch('/wp-json/tossee/v1/report', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(reportData)
-        });
-
-        const result = await response.json();
-
-        if (response.ok && result.success) {
-          reportModal.style.display = 'none';
-          successMessage.style.display = 'block';
-
-          setTimeout(() => {
-            successMessage.style.display = 'none';
-          }, 3000);
-
-          // Disconnect and notify server
-          if (isConnected) {
-            signalingSocket.send(JSON.stringify({
-              type: 'disconnect',
-              to: partnerId,
-              reason: 'reported'
-            }));
-          }
-
-          setTimeout(() => {
-            handleDisconnect();
-            startSearching();
-          }, 1000);
-
-          reportForm.reset();
-          submitReportBtn.disabled = true;
-          reportOptions.forEach(opt => opt.classList.remove('selected'));
-        } else {
-          alert('Failed to submit report. Please try again.');
-        }
-      } catch (error) {
-        console.error('Error submitting report:', error);
-        alert('An error occurred. Please try again.');
-      }
-    });
-
-    reportModal.addEventListener('click', (e) => {
-      if (e.target === reportModal) {
-        reportModal.style.display = 'none';
-        reportForm.reset();
-        submitReportBtn.disabled = true;
-        reportOptions.forEach(opt => opt.classList.remove('selected'));
-      }
-    });
-
-    // ===================================
-    // REPORT BUTTON SETTINGS
-    // ===================================
-    async function checkReportButtonSetting() {
-      try {
-        const response = await fetch('/wp-json/tossee/v1/settings/report-button', {
-          credentials: 'include'
-        });
-
-        const data = await response.json();
-
-        if (data.success && !data.enabled) {
-          reportBtn.style.display = 'none';
-        }
-      } catch (error) {
-        console.error('Error checking report button setting:', error);
-      }
+    } else {
+      alert('Failed to submit report. Please try again.');
     }
+  } catch (error) {
+    console.error('Error submitting report:', error);
+    alert('An error occurred. Please try again.');
+  }
+});
 
-    // ===================================
-    // START APPLICATION
-    // ===================================
-    window.addEventListener('load', init);
+// Close modal when clicking outside
+reportModal.addEventListener('click', (e) => {
+  if (e.target === reportModal) {
+    reportModal.style.display = 'none';
+    reportForm.reset();
+    submitReportBtn.disabled = true;
+    reportOptions.forEach(opt => opt.classList.remove('selected'));
+  }
+});
 
-    // Handle page unload
-    window.addEventListener('beforeunload', () => {
-      if (isConnected && signalingSocket) {
-        signalingSocket.send(JSON.stringify({
-          type: 'disconnect',
-          to: partnerId
-        }));
-      }
+// Check report button settings
+async function checkReportButtonSetting() {
+  try {
+    const response = await fetch('/wp-json/tossee/v1/settings/report-button', {
+      credentials: 'include'
     });
-  </script>
+
+    const data = await response.json();
+
+    if (data.success && !data.enabled) {
+      reportBtn.style.display = 'none';
+    }
+  } catch (error) {
+    console.error('Error checking report button setting:', error);
+  }
+}
+
+// ================================================================
+// AUTO-START ON PAGE LOAD
+// ================================================================
+window.addEventListener("load", () => {
+  console.log("[INIT] Starting matching...");
+  showStatus("Starting...");
+
+  // Check report button settings
+  checkReportButtonSetting();
+
+  setTimeout(() => {
+    startMatching();
+  }, 1000);
+});
+
+</script>
 </body>
 </html>
