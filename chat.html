@@ -795,30 +795,63 @@ document.addEventListener('click', (e) => {
 });
 
 // ================================================================
-// DRAGGABLE PIP
+// DRAGGABLE PIP (Desktop + Mobile)
 // ================================================================
 (function makeDraggable(el) {
   let isDown = false, startX = 0, startY = 0, origX = 0, origY = 0;
 
+  // Helper to get position from mouse or touch event
+  function getPos(e) {
+    return e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
+  }
+
+  // Start dragging (Mouse)
   el.addEventListener('mousedown', e => {
     if (e.target.closest('.icon-btn')) return;
     const rect = el.getBoundingClientRect();
-    startX = e.clientX;
-    startY = e.clientY;
+    const pos = getPos(e);
+    startX = pos.x;
+    startY = pos.y;
     origX = rect.left;
     origY = rect.top;
     isDown = true;
   });
 
+  // Start dragging (Touch)
+  el.addEventListener('touchstart', e => {
+    if (e.target.closest('.icon-btn')) return;
+    const rect = el.getBoundingClientRect();
+    const pos = getPos(e);
+    startX = pos.x;
+    startY = pos.y;
+    origX = rect.left;
+    origY = rect.top;
+    isDown = true;
+  }, { passive: true });
+
+  // Move (Mouse)
   document.addEventListener('mousemove', e => {
     if (!isDown) return;
-    el.style.left = (origX + e.clientX - startX) + "px";
-    el.style.top = (origY + e.clientY - startY) + "px";
+    const pos = getPos(e);
+    el.style.left = (origX + pos.x - startX) + "px";
+    el.style.top = (origY + pos.y - startY) + "px";
     el.style.right = 'auto';
     el.style.bottom = 'auto';
   });
 
+  // Move (Touch)
+  document.addEventListener('touchmove', e => {
+    if (!isDown) return;
+    const pos = getPos(e);
+    el.style.left = (origX + pos.x - startX) + "px";
+    el.style.top = (origY + pos.y - startY) + "px";
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+  }, { passive: true });
+
+  // End dragging (Mouse & Touch)
   document.addEventListener('mouseup', () => isDown = false);
+  document.addEventListener('touchend', () => isDown = false);
 })(localVideoWrapper);
 
 document.addEventListener('gesturestart', e => e.preventDefault());
