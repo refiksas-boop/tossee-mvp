@@ -192,10 +192,65 @@
     }
     .message {
       margin-bottom:10px;
-      color:#fff;
+      color:#00C6FF;
       font-size:15px;
       line-height:1.4em;
       text-align: left;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .message-label {
+      font-weight: 700;
+      color: #a64dff;
+      min-width: 40px;
+    }
+
+    .message-text {
+      color: #00C6FF;
+      flex: 1;
+    }
+
+    /* Emoji Picker */
+    .emoji-picker {
+      display: none;
+      position: absolute;
+      bottom: 85px;
+      left: 10px;
+      background: rgba(20, 13, 66, 0.98);
+      border: 2px solid #00C6FF;
+      border-radius: 12px;
+      padding: 15px;
+      max-width: 350px;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 198, 255, 0.3);
+    }
+
+    .emoji-picker.active {
+      display: block;
+    }
+
+    .emoji-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 8px;
+    }
+
+    .emoji-item {
+      font-size: 24px;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 6px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .emoji-item:hover {
+      background: rgba(0, 198, 255, 0.2);
+      transform: scale(1.2);
     }
 
     .input-area {
@@ -472,9 +527,14 @@
 <div id="chatArea" class="chat-area">
   <div class="messages" id="messages"></div>
 
+  <!-- Emoji Picker -->
+  <div id="emojiPicker" class="emoji-picker">
+    <div class="emoji-grid" id="emojiGrid"></div>
+  </div>
+
   <div class="input-area">
     <div class="action-buttons">
-      <button class="emoji-btn">😊</button>
+      <button class="emoji-btn" id="emojiBtn">😊</button>
       <button class="next-btn" id="nextBtn">➡ Next</button>
       <button class="report-btn" id="reportBtn">Report</button>
       <button class="toggle-chat-btn" id="toggleChat">💬</button>
@@ -645,8 +705,8 @@ function sendMessage() {
   const text = chatInput.value.trim();
   if (!text) return;
 
-  // Display in UI
-  addMessageToUI(text);
+  // Display in UI with "You" label
+  addMessageToUI(text, true);
 
   // Send via data channel
   if (dataChannel && dataChannel.readyState === 'open') {
@@ -664,15 +724,75 @@ function sendMessage() {
   chatInput.value = "";
 }
 
-function addMessageToUI(text) {
+function addMessageToUI(text, isMine = false) {
   const msg = document.createElement("div");
   msg.className = "message";
-  msg.textContent = text;
+
+  // Add label (You or Them)
+  const label = document.createElement("span");
+  label.className = "message-label";
+  label.textContent = isMine ? "You:" : "Them:";
+
+  // Add message text
+  const textSpan = document.createElement("span");
+  textSpan.className = "message-text";
+  textSpan.textContent = text;
+
+  msg.appendChild(label);
+  msg.appendChild(textSpan);
+
   messages.appendChild(msg);
   messages.scrollTop = messages.scrollHeight;
 }
 
 toggleChat.addEventListener("click", () => chatArea.classList.toggle("hidden"));
+
+// ================================================================
+// EMOJI PICKER
+// ================================================================
+const emojiBtn = document.getElementById('emojiBtn');
+const emojiPicker = document.getElementById('emojiPicker');
+const emojiGrid = document.getElementById('emojiGrid');
+
+// 100 popular emojis
+const emojis = [
+  '😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃',
+  '😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙',
+  '😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔',
+  '🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥',
+  '😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮',
+  '🤧','🥵','🥶','😶‍🌫️','🥴','😵','🤯','🤠','🥳','😎',
+  '🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳',
+  '🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖',
+  '😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬',
+  '👍','👎','👌','✌️','🤞','🤟','🤘','🤙','👋','🤚'
+];
+
+// Populate emoji grid
+emojis.forEach(emoji => {
+  const emojiItem = document.createElement('div');
+  emojiItem.className = 'emoji-item';
+  emojiItem.textContent = emoji;
+  emojiItem.onclick = () => {
+    chatInput.value += emoji;
+    chatInput.focus();
+    emojiPicker.classList.remove('active');
+  };
+  emojiGrid.appendChild(emojiItem);
+});
+
+// Toggle emoji picker
+emojiBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  emojiPicker.classList.toggle('active');
+});
+
+// Close emoji picker when clicking outside
+document.addEventListener('click', (e) => {
+  if (!emojiPicker.contains(e.target) && e.target !== emojiBtn) {
+    emojiPicker.classList.remove('active');
+  }
+});
 
 // ================================================================
 // DRAGGABLE PIP
@@ -896,7 +1016,7 @@ function setupDataChannel() {
       const data = JSON.parse(event.data);
       if (data.type === 'message') {
         console.log("[CHAT] Received message:", data.text);
-        addMessageToUI(data.text);
+        addMessageToUI(data.text, false); // false = partner's message
       }
     } catch (e) {
       console.error("[CHAT] Error parsing message:", e);
