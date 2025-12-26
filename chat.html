@@ -1097,7 +1097,7 @@ reportForm.addEventListener('submit', async (e) => {
   };
 
   try {
-    const response = await fetch('https://tossee.com/chat/api/report.php', {
+    const response = await fetch('/api/report.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(reportData)
@@ -1145,7 +1145,7 @@ reportModal.addEventListener('click', (e) => {
 // Check report button settings
 async function checkReportButtonSetting() {
   try {
-    const response = await fetch('https://tossee.com/chat/api/report.php', {
+    const response = await fetch('/api/report.php', {
       method: 'GET'
     });
 
