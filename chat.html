@@ -845,6 +845,9 @@ async function setupWebRTC(isCaller) {
       }
     }
 
+    // Show report button when connected
+    reportBtn.style.display = 'inline-block';
+
     showStatus("Connected! Enjoy your chat!");
     setTimeout(hideStatus, 3000);
   };
@@ -1008,6 +1011,9 @@ function endCall() {
   partnerId = null;
   remoteVideo.srcObject = null;
 
+  // Hide report button
+  reportBtn.style.display = 'none';
+
   // Clear chat messages
   messages.innerHTML = '';
 
@@ -1161,6 +1167,9 @@ async function checkReportButtonSetting() {
 window.addEventListener("load", () => {
   console.log("[INIT] Starting matching...");
   showStatus("Starting...");
+
+  // Hide report button initially (will show when connected)
+  reportBtn.style.display = 'none';
 
   // Check report button settings
   checkReportButtonSetting();
