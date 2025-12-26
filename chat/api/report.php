@@ -1,7 +1,7 @@
 <?php
 /**
  * Tossee Report API
- * Simple PHP endpoint (no WordPress dependency)
+ * Uses WordPress database connection (like queue-manager.php)
  */
 
 header('Content-Type: application/json');
@@ -15,31 +15,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// Database configuration (replace with your actual credentials)
-// IMPORTANT: Get these values from queue-manager.php or signaling-manager.php
-$DB_HOST = 'localhost';
-$DB_NAME = 'REPLACE_WITH_YOUR_DB_NAME';     // e.g., u234011694_chatdb
-$DB_USER = 'REPLACE_WITH_YOUR_DB_USER';     // e.g., u234011694_xxx
-$DB_PASS = 'REPLACE_WITH_YOUR_DB_PASSWORD'; // Your database password
-
-try {
-    $pdo = new PDO("mysql:host=$DB_HOST;dbname=$DB_NAME;charset=utf8mb4", $DB_USER, $DB_PASS);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    // Show detailed error for debugging (remove in production)
+// Load WordPress (same as queue-manager.php)
+$wp_load_path = $_SERVER['DOCUMENT_ROOT'] . '/wp-load.php';
+if (file_exists($wp_load_path)) {
+    require_once($wp_load_path);
+} else {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error' => 'Database connection failed',
-        'details' => $e->getMessage(),
-        'db_name' => $DB_NAME,
-        'db_user' => $DB_USER
+        'error' => 'WordPress not found',
+        'details' => 'wp-load.php not found at: ' . $wp_load_path
     ]);
     exit;
 }
 
+// Use WordPress database connection
+global $wpdb;
+
+if (!$wpdb) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Database connection failed',
+        'details' => 'WordPress $wpdb not available'
+    ]);
+    exit;
+}
+
+// Table names with WordPress prefix
+$reports_table = $wpdb->prefix . 'tossee_reports';
+$settings_table = $wpdb->prefix . 'tossee_settings';
+
 // Create tables if they don't exist
-$pdo->exec("CREATE TABLE IF NOT EXISTS tossee_reports (
+$charset = $wpdb->get_charset_collate();
+
+$wpdb->query("CREATE TABLE IF NOT EXISTS {$reports_table} (
     id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     reporter_id VARCHAR(40) NOT NULL,
     reported_user_id VARCHAR(40) NOT NULL,
@@ -50,16 +60,16 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS tossee_reports (
     INDEX(reporter_id),
     INDEX(reported_user_id),
     INDEX(report_status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+) {$charset}");
 
-$pdo->exec("CREATE TABLE IF NOT EXISTS tossee_settings (
+$wpdb->query("CREATE TABLE IF NOT EXISTS {$settings_table} (
     id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     setting_key VARCHAR(100) NOT NULL UNIQUE,
     setting_value TEXT NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+) {$charset}");
 
 // Insert default setting
-$pdo->exec("INSERT IGNORE INTO tossee_settings (setting_key, setting_value) VALUES ('report_button_enabled', '1')");
+$wpdb->query("INSERT IGNORE INTO {$settings_table} (setting_key, setting_value) VALUES ('report_button_enabled', '1')");
 
 // ================================================================
 // SUBMIT REPORT
@@ -74,19 +84,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $stmt = $pdo->prepare("
-        INSERT INTO tossee_reports (reporter_id, reported_user_id, report_reason, additional_details)
-        VALUES (:reporter_id, :reported_user_id, :report_reason, :additional_details)
-    ");
+    $inserted = $wpdb->insert(
+        $reports_table,
+        array(
+            'reporter_id' => sanitize_text_field($data['reporter_id']),
+            'reported_user_id' => sanitize_text_field($data['reported_user_id']),
+            'report_reason' => sanitize_text_field($data['report_reason']),
+            'additional_details' => isset($data['additional_details']) ? sanitize_textarea_field($data['additional_details']) : null
+        ),
+        array('%s', '%s', '%s', '%s')
+    );
 
-    $stmt->execute([
-        ':reporter_id' => htmlspecialchars($data['reporter_id']),
-        ':reported_user_id' => htmlspecialchars($data['reported_user_id']),
-        ':report_reason' => htmlspecialchars($data['report_reason']),
-        ':additional_details' => isset($data['additional_details']) ? htmlspecialchars($data['additional_details']) : null
-    ]);
-
-    echo json_encode(['success' => true, 'message' => 'Report submitted', 'report_id' => $pdo->lastInsertId()]);
+    if ($inserted) {
+        echo json_encode(['success' => true, 'message' => 'Report submitted', 'report_id' => $wpdb->insert_id]);
+    } else {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Failed to save report', 'details' => $wpdb->last_error]);
+    }
     exit;
 }
 
@@ -94,9 +108,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // GET SETTINGS
 // ================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $stmt = $pdo->prepare("SELECT setting_value FROM tossee_settings WHERE setting_key = 'report_button_enabled'");
-    $stmt->execute();
-    $enabled = $stmt->fetchColumn();
+    $enabled = $wpdb->get_var(
+        $wpdb->prepare("SELECT setting_value FROM {$settings_table} WHERE setting_key = %s", 'report_button_enabled')
+    );
 
     echo json_encode(['success' => true, 'enabled' => ($enabled === '1')]);
     exit;
