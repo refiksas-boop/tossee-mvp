@@ -1097,10 +1097,9 @@ reportForm.addEventListener('submit', async (e) => {
   };
 
   try {
-    const response = await fetch('https://tossee.com/wp-json/tossee/v1/report', {
+    const response = await fetch('https://tossee.com/chat/api/report.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify(reportData)
     });
 
@@ -1146,9 +1145,8 @@ reportModal.addEventListener('click', (e) => {
 // Check report button settings
 async function checkReportButtonSetting() {
   try {
-    const response = await fetch('https://tossee.com/wp-json/tossee/v1/settings/report-button', {
-      method: 'GET',
-      credentials: 'include'
+    const response = await fetch('https://tossee.com/chat/api/report.php', {
+      method: 'GET'
     });
 
     const data = await response.json();
