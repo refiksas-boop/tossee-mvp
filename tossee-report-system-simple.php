@@ -85,10 +85,23 @@ add_action('admin_menu', function() {
                 echo '<table class="wp-list-table widefat fixed striped">';
                 echo '<thead><tr><th>ID</th><th>Reporter</th><th>Reported User</th><th>Reason</th><th>Status</th><th>Additional Details</th><th>Date</th></tr></thead><tbody>';
                 foreach ($reports as $r) {
+                    // Get user DB IDs from tossee_id for linking to user profiles
+                    $reporter_db_id = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}tossee_users WHERE tossee_id = %s", $r->reporter_id));
+                    $reported_db_id = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}tossee_users WHERE tossee_id = %s", $r->reported_user_id));
+
+                    // Create clickable links to user profiles if user exists
+                    $reporter_link = $reporter_db_id
+                        ? '<a href="' . admin_url('admin.php?page=tossee-users&view=user&id=' . $reporter_db_id) . '" style="color: #2271b1; text-decoration: underline;">' . esc_html($r->reporter_id) . '</a>'
+                        : esc_html($r->reporter_id);
+
+                    $reported_link = $reported_db_id
+                        ? '<a href="' . admin_url('admin.php?page=tossee-users&view=user&id=' . $reported_db_id) . '" style="color: #2271b1; text-decoration: underline;">' . esc_html($r->reported_user_id) . '</a>'
+                        : esc_html($r->reported_user_id);
+
                     echo '<tr>';
                     echo '<td>' . $r->id . '</td>';
-                    echo '<td>' . esc_html($r->reporter_id) . '</td>';
-                    echo '<td>' . esc_html($r->reported_user_id) . '</td>';
+                    echo '<td>' . $reporter_link . '</td>';
+                    echo '<td>' . $reported_link . '</td>';
                     echo '<td>' . esc_html($r->report_reason) . '</td>';
                     echo '<td>' . esc_html($r->report_status) . '</td>';
                     echo '<td>' . esc_html($r->additional_details) . '</td>';
