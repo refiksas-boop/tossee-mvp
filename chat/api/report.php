@@ -16,17 +16,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // Database configuration (replace with your actual credentials)
+// IMPORTANT: Get these values from queue-manager.php or signaling-manager.php
 $DB_HOST = 'localhost';
-$DB_NAME = 'tossee_db';
-$DB_USER = 'tossee_user';
-$DB_PASS = 'your_password';
+$DB_NAME = 'REPLACE_WITH_YOUR_DB_NAME';     // e.g., u234011694_chatdb
+$DB_USER = 'REPLACE_WITH_YOUR_DB_USER';     // e.g., u234011694_xxx
+$DB_PASS = 'REPLACE_WITH_YOUR_DB_PASSWORD'; // Your database password
 
 try {
     $pdo = new PDO("mysql:host=$DB_HOST;dbname=$DB_NAME;charset=utf8mb4", $DB_USER, $DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
+    // Show detailed error for debugging (remove in production)
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Database connection failed']);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Database connection failed',
+        'details' => $e->getMessage(),
+        'db_name' => $DB_NAME,
+        'db_user' => $DB_USER
+    ]);
     exit;
 }
 
