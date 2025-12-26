@@ -192,7 +192,6 @@
     }
     .message {
       margin-bottom:10px;
-      color:#a64dff;
       font-size:15px;
       line-height:1.4em;
       text-align: left;
@@ -201,14 +200,32 @@
       gap: 8px;
     }
 
+    .message.mine .message-label {
+      font-weight: 700;
+      color: #a64dff;
+      min-width: 40px;
+    }
+
+    .message.mine .message-text {
+      color: #a64dff;
+    }
+
+    .message.theirs .message-label {
+      font-weight: 700;
+      color: #00C6FF;
+      min-width: 40px;
+    }
+
+    .message.theirs .message-text {
+      color: #00C6FF;
+    }
+
     .message-label {
       font-weight: 700;
-      color: #140D42;
       min-width: 40px;
     }
 
     .message-text {
-      color: #a64dff;
       flex: 1;
     }
 
@@ -726,7 +743,7 @@ function sendMessage() {
 
 function addMessageToUI(text, isMine = false) {
   const msg = document.createElement("div");
-  msg.className = "message";
+  msg.className = isMine ? "message mine" : "message theirs";
 
   // Add label (You or Them)
   const label = document.createElement("span");
