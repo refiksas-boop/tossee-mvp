@@ -202,7 +202,7 @@
 
     .message.mine .message-label {
       font-weight: 700;
-      color: #00C6FF;
+      color: #140D42;
       min-width: 40px;
     }
 
@@ -217,7 +217,7 @@
     }
 
     .message.theirs .message-text {
-      color: #00C6FF;
+      color: #140D42;
     }
 
     .message-label {
@@ -520,6 +520,7 @@
     <div class="video-controls">
       <button id="toggleCamera" class="icon-btn" title="Toggle camera">📷</button>
       <button id="toggleMic" class="icon-btn" title="Toggle mic">🎤</button>
+      <button id="flipCamera" class="icon-btn" title="Flip camera">🔄</button>
     </div>
   </div>
 </div>
@@ -635,6 +636,7 @@ const localVideo = document.getElementById("localVideo");
 const remoteVideo = document.getElementById("remoteVideo");
 const cameraBtn = document.getElementById("toggleCamera");
 const micBtn = document.getElementById("toggleMic");
+const flipCameraBtn = document.getElementById("flipCamera");
 const chatArea = document.getElementById("chatArea");
 const toggleChat = document.getElementById("toggleChat");
 const sendBtn = document.getElementById("sendBtn");
@@ -672,12 +674,22 @@ function hideStatus() {
 // LOCAL STREAM SETUP
 // ================================================================
 let localStream = null;
+let currentFacingMode = 'user'; // 'user' = front, 'environment' = back
 
-async function startLocalVideo() {
+async function startLocalVideo(facingMode = 'user') {
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    // Stop existing stream if any
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+    }
+
+    localStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: facingMode },
+      audio: true
+    });
     localVideo.srcObject = localStream;
-    console.log("[LOCAL VIDEO] Started");
+    currentFacingMode = facingMode;
+    console.log("[LOCAL VIDEO] Started with facingMode:", facingMode);
   } catch (err) {
     console.error('[LOCAL VIDEO] Error:', err);
     showStatus("Camera/Mic access denied!");
@@ -703,6 +715,22 @@ micBtn.addEventListener("click", () => {
   const track = localStream.getAudioTracks()[0];
   track.enabled = !track.enabled;
   micBtn.classList.toggle("off", !track.enabled);
+});
+
+// Flip camera (front/back)
+flipCameraBtn.addEventListener("click", async () => {
+  const newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+  await startLocalVideo(newFacingMode);
+
+  // Update peer connection if active
+  if (pc && localStream) {
+    const videoTrack = localStream.getVideoTracks()[0];
+    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+    if (sender) {
+      await sender.replaceTrack(videoTrack);
+      console.log("[CAMERA] Flipped to:", newFacingMode);
+    }
+  }
 });
 
 // ================================================================
