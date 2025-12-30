@@ -118,28 +118,38 @@
 
     .video-controls {
       position: absolute;
-      top: 6px;
+      top: 8px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      gap: 8px;
+      gap: 10px;
       z-index: 1700;
       pointer-events: none;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 6px 10px;
+      border-radius: 20px;
     }
     .icon-btn {
       pointer-events: auto;
-      background: rgba(0,0,0,0.6);
-      border: none;
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.4);
       font-size: 18px;
       color: white;
       cursor: pointer;
       border-radius: 50%;
-      width: 34px;
-      height: 34px;
+      width: 38px;
+      height: 38px;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
+      transition: all 0.2s;
+      backdrop-filter: blur(5px);
+    }
+    .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.6);
+      transform: scale(1.1);
     }
     .icon-btn.off::before,
     .icon-btn.off::after {
@@ -160,20 +170,20 @@
       -webkit-text-stroke: 0.5px black;
     }
 
-    /* Effects Menu - ACCORDION STYLE */
+    /* Effects Menu - FIXED ACCORDION */
     .effects-menu {
       display: none;
       position: absolute;
-      bottom: 50px;
+      bottom: 55px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(20, 13, 66, 0.98);
       border: 2px solid #00C6FF;
       border-radius: 12px;
-      padding: 6px;
-      width: 85%;
-      max-width: 240px;
-      max-height: 280px;
+      padding: 8px;
+      width: 90%;
+      max-width: 260px;
+      max-height: 400px;
       overflow-y: auto;
       z-index: 1800;
       box-shadow: 0 8px 32px rgba(0, 198, 255, 0.5);
@@ -184,9 +194,9 @@
     }
 
     .filter-section {
-      margin-bottom: 4px;
+      margin-bottom: 6px;
       border-bottom: 1px solid rgba(0, 198, 255, 0.2);
-      padding-bottom: 4px;
+      padding-bottom: 6px;
     }
 
     .filter-section:last-child {
@@ -196,29 +206,31 @@
 
     .filter-section h4 {
       margin: 0;
-      padding: 8px 6px;
+      padding: 10px 8px;
       color: #00c6ff;
-      font-size: 11px;
+      font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       cursor: pointer;
-      background: rgba(0, 198, 255, 0.05);
-      border-radius: 6px;
-      transition: background 0.2s;
+      background: rgba(0, 198, 255, 0.1);
+      border-radius: 8px;
+      transition: all 0.2s;
       user-select: none;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      font-weight: 600;
     }
 
     .filter-section h4:hover {
-      background: rgba(0, 198, 255, 0.15);
+      background: rgba(0, 198, 255, 0.25);
     }
 
     .filter-section h4::after {
       content: '▼';
-      font-size: 8px;
+      font-size: 10px;
       transition: transform 0.3s;
+      margin-left: 8px;
     }
 
     .filter-section.collapsed h4::after {
@@ -228,16 +240,19 @@
     .effects-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 4px;
-      margin-top: 6px;
-      max-height: 200px;
-      overflow: hidden;
-      transition: max-height 0.3s ease;
+      gap: 5px;
+      margin-top: 8px;
+      max-height: 500px;
+      overflow: visible;
+      transition: max-height 0.3s ease, opacity 0.3s ease;
+      opacity: 1;
     }
 
     .filter-section.collapsed .effects-grid {
       max-height: 0;
       margin-top: 0;
+      opacity: 0;
+      overflow: hidden;
     }
 
     .effect-btn {
