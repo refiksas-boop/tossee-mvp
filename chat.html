@@ -97,16 +97,6 @@
       pointer-events: none;
     }
 
-    #effectsCanvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 10;
-    }
-
     #localVideo::-webkit-media-controls,
     #localVideo::-webkit-media-controls-enclosure,
     #localVideo::-webkit-media-controls-overlay-play-button,
@@ -170,116 +160,6 @@
       -webkit-text-stroke: 0.5px black;
     }
 
-    /* Effects Menu - FIXED ACCORDION */
-    .effects-menu {
-      display: none;
-      position: absolute;
-      bottom: 55px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(20, 13, 66, 0.98);
-      border: 2px solid #00C6FF;
-      border-radius: 12px;
-      padding: 8px;
-      width: 90%;
-      max-width: 260px;
-      max-height: 400px;
-      overflow-y: auto;
-      z-index: 1800;
-      box-shadow: 0 8px 32px rgba(0, 198, 255, 0.5);
-    }
-
-    .effects-menu.active {
-      display: block;
-    }
-
-    .filter-section {
-      margin-bottom: 6px;
-      border-bottom: 1px solid rgba(0, 198, 255, 0.2);
-      padding-bottom: 6px;
-    }
-
-    .filter-section:last-child {
-      margin-bottom: 0;
-      border-bottom: none;
-    }
-
-    .filter-section h4 {
-      margin: 0;
-      padding: 10px 8px;
-      color: #00c6ff;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      cursor: pointer;
-      background: rgba(0, 198, 255, 0.1);
-      border-radius: 8px;
-      transition: all 0.2s;
-      user-select: none;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 600;
-    }
-
-    .filter-section h4:hover {
-      background: rgba(0, 198, 255, 0.25);
-    }
-
-    .filter-section h4::after {
-      content: '▼';
-      font-size: 10px;
-      transition: transform 0.3s;
-      margin-left: 8px;
-    }
-
-    .filter-section.collapsed h4::after {
-      transform: rotate(-90deg);
-    }
-
-    .effects-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 5px;
-      margin-top: 8px;
-      max-height: 500px;
-      overflow: visible;
-      transition: max-height 0.3s ease, opacity 0.3s ease;
-      opacity: 1;
-    }
-
-    .filter-section.collapsed .effects-grid {
-      max-height: 0;
-      margin-top: 0;
-      opacity: 0;
-      overflow: hidden;
-    }
-
-    .effect-btn {
-      background: rgba(0, 198, 255, 0.1);
-      border: 2px solid rgba(0, 198, 255, 0.3);
-      border-radius: 6px;
-      padding: 8px 4px;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-size: 9px;
-      color: #fff;
-      text-align: center;
-      line-height: 1.2;
-    }
-
-    .effect-btn:hover {
-      background: rgba(0, 198, 255, 0.2);
-      border-color: #00c6ff;
-      transform: scale(1.05);
-    }
-
-    .effect-btn.active {
-      background: rgba(0, 198, 255, 0.3);
-      border-color: #00c6ff;
-      box-shadow: 0 0 10px rgba(0, 198, 255, 0.5);
-    }
-
     /* Menu */
     .menu-sidebar {
       position: fixed;
@@ -301,7 +181,7 @@
     }
     .menu-sidebar a:hover { color: #00c6ff; }
 
-    /* Chat - FIXED */
+    /* Chat */
     .chat-area {
       position: absolute;
       bottom: 0;
@@ -457,9 +337,7 @@
       z-index: 9999;
     }
 
-    /* ========================================
-       REPORT MODAL STYLES
-    ======================================== */
+    /* REPORT MODAL */
     .report-modal {
       display: none;
       position: fixed;
@@ -652,55 +530,11 @@
 
   <div id="localVideoWrapper">
     <video id="localVideo" autoplay playsinline muted></video>
-    <canvas id="effectsCanvas"></canvas>
-
-    <!-- Effects Menu -->
-    <div id="effectsMenu" class="effects-menu">
-      <div class="filter-section">
-        <h4>🎨 Color Filters</h4>
-        <div class="effects-grid">
-          <button class="effect-btn active" data-filter="none">Normal</button>
-          <button class="effect-btn" data-filter="warm">Warm</button>
-          <button class="effect-btn" data-filter="cool">Cool</button>
-          <button class="effect-btn" data-filter="vintage">Vintage</button>
-          <button class="effect-btn" data-filter="bw">B&W</button>
-          <button class="effect-btn" data-filter="sepia">Sepia</button>
-          <button class="effect-btn" data-filter="vibrant">Vibrant</button>
-          <button class="effect-btn" data-filter="pastel">Pastel</button>
-        </div>
-      </div>
-
-      <div class="filter-section collapsed">
-        <h4>✨ Face Effects</h4>
-        <div class="effects-grid">
-          <button class="effect-btn active" data-face="none">Off</button>
-          <button class="effect-btn" data-face="dog">🐶 Dog</button>
-          <button class="effect-btn" data-face="cat">🐱 Cat</button>
-          <button class="effect-btn" data-face="bunny">🐰 Bunny</button>
-          <button class="effect-btn" data-face="glasses">🕶️ Shades</button>
-          <button class="effect-btn" data-face="crown">👑 Crown</button>
-          <button class="effect-btn" data-face="hearts">💕 Hearts</button>
-          <button class="effect-btn" data-face="stars">⭐ Stars</button>
-        </div>
-      </div>
-
-      <div class="filter-section collapsed">
-        <h4>💫 Special FX</h4>
-        <div class="effects-grid">
-          <button class="effect-btn active" data-special="none">None</button>
-          <button class="effect-btn" data-special="blur">Blur</button>
-          <button class="effect-btn" data-special="pixel">Pixel</button>
-          <button class="effect-btn" data-special="rainbow">Rainbow</button>
-          <button class="effect-btn" data-special="glow">Glow</button>
-        </div>
-      </div>
-    </div>
 
     <div class="video-controls">
       <button id="toggleCamera" class="icon-btn" title="Toggle camera">📷</button>
       <button id="toggleMic" class="icon-btn" title="Toggle mic">🎤</button>
       <button id="flipCamera" class="icon-btn" title="Flip camera">↺</button>
-      <button id="effectsBtn" class="icon-btn" title="Effects">✨</button>
     </div>
   </div>
 </div>
@@ -796,10 +630,6 @@
   Thank you for your report.<br>We'll review it shortly.
 </div>
 
-<!-- Face-api.js Library -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0"></script>
-<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.min.js"></script>
-
 <script>
 // ================================================================
 // UI CONTROLS
@@ -821,9 +651,6 @@ const remoteVideo = document.getElementById("remoteVideo");
 const cameraBtn = document.getElementById("toggleCamera");
 const micBtn = document.getElementById("toggleMic");
 const flipCameraBtn = document.getElementById("flipCamera");
-const effectsBtn = document.getElementById("effectsBtn");
-const effectsMenu = document.getElementById("effectsMenu");
-const effectsCanvas = document.getElementById("effectsCanvas");
 const chatArea = document.getElementById("chatArea");
 const toggleChat = document.getElementById("toggleChat");
 const sendBtn = document.getElementById("sendBtn");
@@ -858,426 +685,6 @@ function hideStatus() {
 }
 
 // ================================================================
-// EFFECTS SYSTEM - FIXED
-// ================================================================
-let currentColorFilter = 'none';
-let currentFaceEffect = 'none';
-let currentSpecialEffect = 'none';
-let faceApiLoaded = false;
-let detectionInterval = null;
-let isCameraEnabled = true; // Track camera state
-
-// Color filter presets
-const colorFilters = {
-  none: '',
-  warm: 'sepia(0.3) saturate(1.4) brightness(1.1)',
-  cool: 'hue-rotate(180deg) saturate(1.2)',
-  vintage: 'sepia(0.5) contrast(1.2) brightness(0.9)',
-  bw: 'grayscale(100%)',
-  sepia: 'sepia(100%)',
-  vibrant: 'saturate(2) contrast(1.2)',
-  pastel: 'saturate(0.6) brightness(1.2) contrast(0.9)'
-};
-
-// Special effects
-const specialEffects = {
-  none: '',
-  blur: 'blur(3px)',
-  pixel: '',  // Handled via canvas
-  rainbow: 'hue-rotate(var(--hue, 0deg))',
-  glow: 'brightness(1.3) contrast(1.2) saturate(1.5)'
-};
-
-// Load face-api models
-async function loadFaceApiModels() {
-  try {
-    const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
-    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-    await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-    faceApiLoaded = true;
-    console.log('[FACE-API] Models loaded successfully');
-  } catch (err) {
-    console.error('[FACE-API] Failed to load models:', err);
-  }
-}
-
-// Initialize effects canvas
-function initEffectsCanvas() {
-  const ctx = effectsCanvas.getContext('2d');
-  effectsCanvas.width = localVideo.videoWidth || 640;
-  effectsCanvas.height = localVideo.videoHeight || 480;
-}
-
-// Apply color filter
-function applyColorFilter(filter) {
-  currentColorFilter = filter;
-  updateVideoFilters();
-}
-
-// Apply special effect
-function applySpecialEffect(effect) {
-  currentSpecialEffect = effect;
-
-  if (effect === 'rainbow') {
-    // Animate rainbow hue rotation
-    let hue = 0;
-    setInterval(() => {
-      hue = (hue + 2) % 360;
-      localVideo.style.setProperty('--hue', `${hue}deg`);
-    }, 50);
-  }
-
-  updateVideoFilters();
-}
-
-// FIXED: Update video filters - properly handle camera off state
-function updateVideoFilters() {
-  let filters = [];
-
-  // CRITICAL FIX: Only add darkness when camera is OFF
-  if (!isCameraEnabled) {
-    filters.push('brightness(0.2)');
-  } else {
-    // Camera is ON - apply effects normally
-    if (currentColorFilter !== 'none' && colorFilters[currentColorFilter]) {
-      filters.push(colorFilters[currentColorFilter]);
-    }
-
-    if (currentSpecialEffect !== 'none' && specialEffects[currentSpecialEffect]) {
-      filters.push(specialEffects[currentSpecialEffect]);
-    }
-  }
-
-  localVideo.style.filter = filters.join(' ');
-}
-
-// Draw face effects on canvas
-async function drawFaceEffects() {
-  if (!faceApiLoaded || currentFaceEffect === 'none') {
-    const ctx = effectsCanvas.getContext('2d');
-    ctx.clearRect(0, 0, effectsCanvas.width, effectsCanvas.height);
-    return;
-  }
-
-  try {
-    const detections = await faceapi
-      .detectAllFaces(localVideo, new faceapi.TinyFaceDetectorOptions())
-      .withFaceLandmarks();
-
-    const ctx = effectsCanvas.getContext('2d');
-    ctx.clearRect(0, 0, effectsCanvas.width, effectsCanvas.height);
-
-    if (detections && detections.length > 0) {
-      detections.forEach(detection => {
-        const landmarks = detection.landmarks;
-
-        switch(currentFaceEffect) {
-          case 'dog':
-            drawDogFilter(ctx, landmarks);
-            break;
-          case 'cat':
-            drawCatEars(ctx, landmarks);
-            break;
-          case 'bunny':
-            drawBunnyEars(ctx, landmarks);
-            break;
-          case 'glasses':
-            drawSunglasses(ctx, landmarks);
-            break;
-          case 'crown':
-            drawCrown(ctx, landmarks);
-            break;
-          case 'hearts':
-            drawHearts(ctx, landmarks);
-            break;
-          case 'stars':
-            drawStars(ctx, landmarks);
-            break;
-        }
-      });
-    }
-  } catch (err) {
-    console.error('[FACE EFFECTS] Error:', err);
-  }
-}
-
-// Face effect drawing functions
-function drawDogFilter(ctx, landmarks) {
-  const nose = landmarks.getNose();
-  const leftEye = landmarks.getLeftEye();
-  const rightEye = landmarks.getRightEye();
-
-  // Dog ears
-  const earSize = 40;
-  ctx.fillStyle = '#8B4513';
-  ctx.beginPath();
-  ctx.arc(leftEye[0].x - 30, leftEye[0].y - 50, earSize, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(rightEye[3].x + 30, rightEye[3].y - 50, earSize, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Dog nose
-  ctx.fillStyle = '#000';
-  ctx.beginPath();
-  ctx.arc(nose[3].x, nose[3].y, 15, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Tongue
-  ctx.fillStyle = '#FF69B4';
-  ctx.beginPath();
-  ctx.ellipse(nose[3].x, nose[3].y + 25, 12, 20, 0, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawCatEars(ctx, landmarks) {
-  const leftEye = landmarks.getLeftEye();
-  const rightEye = landmarks.getRightEye();
-
-  // Cat ears (triangles)
-  ctx.fillStyle = '#FFB6C1';
-  ctx.strokeStyle = '#FF69B4';
-  ctx.lineWidth = 2;
-
-  // Left ear
-  ctx.beginPath();
-  ctx.moveTo(leftEye[0].x - 20, leftEye[0].y - 60);
-  ctx.lineTo(leftEye[0].x - 50, leftEye[0].y - 100);
-  ctx.lineTo(leftEye[0].x + 10, leftEye[0].y - 80);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  // Right ear
-  ctx.beginPath();
-  ctx.moveTo(rightEye[3].x + 20, rightEye[3].y - 60);
-  ctx.lineTo(rightEye[3].x + 50, rightEye[3].y - 100);
-  ctx.lineTo(rightEye[3].x - 10, rightEye[3].y - 80);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-}
-
-function drawBunnyEars(ctx, landmarks) {
-  const leftEye = landmarks.getLeftEye();
-  const rightEye = landmarks.getRightEye();
-
-  ctx.fillStyle = '#FFB6C1';
-  ctx.strokeStyle = '#FF69B4';
-  ctx.lineWidth = 2;
-
-  // Left bunny ear
-  ctx.beginPath();
-  ctx.ellipse(leftEye[0].x - 25, leftEye[0].y - 80, 15, 50, -0.3, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-
-  // Right bunny ear
-  ctx.beginPath();
-  ctx.ellipse(rightEye[3].x + 25, rightEye[3].y - 80, 15, 50, 0.3, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-}
-
-function drawSunglasses(ctx, landmarks) {
-  const leftEye = landmarks.getLeftEye();
-  const rightEye = landmarks.getRightEye();
-
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-  ctx.strokeStyle = '#333';
-  ctx.lineWidth = 3;
-
-  // Left lens
-  ctx.beginPath();
-  ctx.ellipse(leftEye[3].x, leftEye[3].y, 30, 20, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-
-  // Right lens
-  ctx.beginPath();
-  ctx.ellipse(rightEye[0].x, rightEye[0].y, 30, 20, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-
-  // Bridge
-  ctx.beginPath();
-  ctx.moveTo(leftEye[3].x + 30, leftEye[3].y);
-  ctx.lineTo(rightEye[0].x - 30, rightEye[0].y);
-  ctx.stroke();
-}
-
-function drawCrown(ctx, landmarks) {
-  const jaw = landmarks.getJawOutline();
-  const top = jaw[8];
-
-  ctx.fillStyle = '#FFD700';
-  ctx.strokeStyle = '#FFA500';
-  ctx.lineWidth = 2;
-
-  // Crown
-  ctx.beginPath();
-  ctx.moveTo(top.x - 60, top.y - 80);
-  ctx.lineTo(top.x - 45, top.y - 100);
-  ctx.lineTo(top.x - 30, top.y - 85);
-  ctx.lineTo(top.x - 15, top.y - 105);
-  ctx.lineTo(top.x, top.y - 85);
-  ctx.lineTo(top.x + 15, top.y - 105);
-  ctx.lineTo(top.x + 30, top.y - 85);
-  ctx.lineTo(top.x + 45, top.y - 100);
-  ctx.lineTo(top.x + 60, top.y - 80);
-  ctx.lineTo(top.x + 60, top.y - 70);
-  ctx.lineTo(top.x - 60, top.y - 70);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-}
-
-function drawHearts(ctx, landmarks) {
-  const leftEye = landmarks.getLeftEye();
-  const rightEye = landmarks.getRightEye();
-
-  ctx.fillStyle = '#FF69B4';
-
-  // Draw heart above each eye
-  [leftEye[3], rightEye[0]].forEach(point => {
-    const x = point.x;
-    const y = point.y - 40;
-    const size = 20;
-
-    ctx.beginPath();
-    ctx.moveTo(x, y + size / 4);
-    ctx.bezierCurveTo(x, y, x - size / 2, y - size / 2, x - size / 2, y - size / 4);
-    ctx.bezierCurveTo(x - size / 2, y, x, y + size / 2, x, y + size);
-    ctx.bezierCurveTo(x, y + size / 2, x + size / 2, y, x + size / 2, y - size / 4);
-    ctx.bezierCurveTo(x + size / 2, y - size / 2, x, y, x, y + size / 4);
-    ctx.fill();
-  });
-}
-
-function drawStars(ctx, landmarks) {
-  const nose = landmarks.getNose();
-  const leftEye = landmarks.getLeftEye();
-  const rightEye = landmarks.getRightEye();
-
-  ctx.fillStyle = '#FFD700';
-  ctx.strokeStyle = '#FFA500';
-  ctx.lineWidth = 2;
-
-  // Draw stars around face
-  const positions = [
-    {x: leftEye[0].x - 40, y: leftEye[0].y - 30},
-    {x: rightEye[3].x + 40, y: rightEye[3].y - 30},
-    {x: nose[3].x, y: nose[3].y - 60}
-  ];
-
-  positions.forEach(pos => {
-    drawStar(ctx, pos.x, pos.y, 5, 15, 7);
-  });
-}
-
-function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
-  let rot = Math.PI / 2 * 3;
-  let x = cx;
-  let y = cy;
-  const step = Math.PI / spikes;
-
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - outerRadius);
-
-  for (let i = 0; i < spikes; i++) {
-    x = cx + Math.cos(rot) * outerRadius;
-    y = cy + Math.sin(rot) * outerRadius;
-    ctx.lineTo(x, y);
-    rot += step;
-
-    x = cx + Math.cos(rot) * innerRadius;
-    y = cy + Math.sin(rot) * innerRadius;
-    ctx.lineTo(x, y);
-    rot += step;
-  }
-
-  ctx.lineTo(cx, cy - outerRadius);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-}
-
-// Start face detection loop
-function startFaceDetection() {
-  if (detectionInterval) return;
-
-  detectionInterval = setInterval(() => {
-    if (currentFaceEffect !== 'none') {
-      drawFaceEffects();
-    }
-  }, 100); // Update every 100ms
-}
-
-// Stop face detection
-function stopFaceDetection() {
-  if (detectionInterval) {
-    clearInterval(detectionInterval);
-    detectionInterval = null;
-  }
-  const ctx = effectsCanvas.getContext('2d');
-  ctx.clearRect(0, 0, effectsCanvas.width, effectsCanvas.height);
-}
-
-// Effects button handler
-effectsBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  effectsMenu.classList.toggle('active');
-});
-
-// Close effects menu when clicking outside
-document.addEventListener('click', (e) => {
-  if (!effectsMenu.contains(e.target) && e.target !== effectsBtn) {
-    effectsMenu.classList.remove('active');
-  }
-});
-
-// Accordion functionality for filter sections
-document.querySelectorAll('.filter-section h4').forEach(header => {
-  header.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const section = header.parentElement;
-    section.classList.toggle('collapsed');
-  });
-});
-
-// Handle effect button clicks
-document.querySelectorAll('.effect-btn').forEach(btn => {
-  btn.addEventListener('click', function() {
-    // Color filters
-    if (this.dataset.filter) {
-      document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      applyColorFilter(this.dataset.filter);
-    }
-
-    // Face effects
-    if (this.dataset.face) {
-      document.querySelectorAll('[data-face]').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      currentFaceEffect = this.dataset.face;
-
-      if (this.dataset.face === 'none') {
-        stopFaceDetection();
-      } else {
-        startFaceDetection();
-      }
-    }
-
-    // Special effects
-    if (this.dataset.special) {
-      document.querySelectorAll('[data-special]').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      applySpecialEffect(this.dataset.special);
-    }
-  });
-});
-
-// ================================================================
 // LOCAL STREAM SETUP
 // ================================================================
 let localStream = null;
@@ -1297,11 +704,6 @@ async function startLocalVideo(facingMode = 'user') {
     localVideo.srcObject = localStream;
     currentFacingMode = facingMode;
 
-    // Initialize canvas after video loads
-    localVideo.addEventListener('loadedmetadata', () => {
-      initEffectsCanvas();
-    });
-
     console.log("[LOCAL VIDEO] Started with facingMode:", facingMode);
   } catch (err) {
     console.error('[LOCAL VIDEO] Error:', err);
@@ -1309,20 +711,17 @@ async function startLocalVideo(facingMode = 'user') {
   }
 }
 
-// Start immediately and load face detection models
+// Start immediately
 startLocalVideo();
-loadFaceApiModels();
 
 // ================================================================
-// CAMERA/MIC TOGGLE - FIXED
+// CAMERA/MIC TOGGLE
 // ================================================================
 cameraBtn.addEventListener("click", () => {
   if (!localStream) return;
   const track = localStream.getVideoTracks()[0];
   track.enabled = !track.enabled;
-  isCameraEnabled = track.enabled; // Update camera state
   cameraBtn.classList.toggle("off", !track.enabled);
-  updateVideoFilters(); // Reapply filters with new camera state
 });
 
 micBtn.addEventListener("click", () => {
@@ -1475,7 +874,7 @@ document.addEventListener('click', (e) => {
 
   // Start dragging (Mouse)
   el.addEventListener('mousedown', e => {
-    if (e.target.closest('.icon-btn') || e.target.closest('.effects-menu')) return;
+    if (e.target.closest('.icon-btn')) return;
     const rect = el.getBoundingClientRect();
     const pos = getPos(e);
     startX = pos.x;
@@ -1487,7 +886,7 @@ document.addEventListener('click', (e) => {
 
   // Start dragging or pinching (Touch)
   el.addEventListener('touchstart', e => {
-    if (e.target.closest('.icon-btn') || e.target.closest('.effects-menu')) return;
+    if (e.target.closest('.icon-btn')) return;
 
     if (e.touches.length === 2) {
       // Pinch zoom
