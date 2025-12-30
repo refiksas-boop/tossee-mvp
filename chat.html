@@ -163,19 +163,20 @@
     /* Effects Menu */
     .effects-menu {
       display: none;
-      position: absolute;
-      bottom: 100%;
+      position: fixed;
+      bottom: 60px;
       left: 50%;
       transform: translateX(-50%);
-      margin-bottom: 10px;
-      background: rgba(20, 13, 66, 0.95);
+      background: rgba(20, 13, 66, 0.98);
       border: 2px solid #00C6FF;
       border-radius: 12px;
       padding: 15px;
       min-width: 280px;
-      max-width: 320px;
-      z-index: 1800;
-      box-shadow: 0 8px 32px rgba(0, 198, 255, 0.4);
+      max-width: 90vw;
+      max-height: 70vh;
+      overflow-y: auto;
+      z-index: 9000;
+      box-shadow: 0 8px 32px rgba(0, 198, 255, 0.5);
     }
 
     .effects-menu.active {
@@ -1385,14 +1386,22 @@ document.addEventListener('click', (e) => {
 });
 
 // ================================================================
-// DRAGGABLE PIP (Desktop + Mobile)
+// DRAGGABLE PIP (Desktop + Mobile) + PINCH-TO-ZOOM
 // ================================================================
 (function makeDraggable(el) {
   let isDown = false, startX = 0, startY = 0, origX = 0, origY = 0;
+  let isPinching = false, initialDistance = 0, initialWidth = 0;
 
   // Helper to get position from mouse or touch event
   function getPos(e) {
     return e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
+  }
+
+  // Calculate distance between two touch points
+  function getDistance(touch1, touch2) {
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
   }
 
   // Start dragging (Mouse)
@@ -1407,17 +1416,29 @@ document.addEventListener('click', (e) => {
     isDown = true;
   });
 
-  // Start dragging (Touch)
+  // Start dragging or pinching (Touch)
   el.addEventListener('touchstart', e => {
     if (e.target.closest('.icon-btn') || e.target.closest('.effects-menu')) return;
-    const rect = el.getBoundingClientRect();
-    const pos = getPos(e);
-    startX = pos.x;
-    startY = pos.y;
-    origX = rect.left;
-    origY = rect.top;
-    isDown = true;
-  }, { passive: true });
+
+    if (e.touches.length === 2) {
+      // Pinch zoom
+      isPinching = true;
+      isDown = false;
+      initialDistance = getDistance(e.touches[0], e.touches[1]);
+      initialWidth = el.offsetWidth;
+      e.preventDefault();
+    } else if (e.touches.length === 1) {
+      // Drag
+      const rect = el.getBoundingClientRect();
+      const pos = getPos(e);
+      startX = pos.x;
+      startY = pos.y;
+      origX = rect.left;
+      origY = rect.top;
+      isDown = true;
+      isPinching = false;
+    }
+  });
 
   // Move (Mouse)
   document.addEventListener('mousemove', e => {
@@ -1429,22 +1450,54 @@ document.addEventListener('click', (e) => {
     el.style.bottom = 'auto';
   });
 
-  // Move (Touch)
+  // Move or pinch (Touch)
   document.addEventListener('touchmove', e => {
-    if (!isDown) return;
-    const pos = getPos(e);
-    el.style.left = (origX + pos.x - startX) + "px";
-    el.style.top = (origY + pos.y - startY) + "px";
-    el.style.right = 'auto';
-    el.style.bottom = 'auto';
-  }, { passive: true });
+    if (isPinching && e.touches.length === 2) {
+      // Pinch zoom
+      const currentDistance = getDistance(e.touches[0], e.touches[1]);
+      const scale = currentDistance / initialDistance;
+      const newWidth = Math.max(150, Math.min(600, initialWidth * scale));
 
-  // End dragging (Mouse & Touch)
+      el.style.width = newWidth + 'px';
+      el.style.maxWidth = newWidth + 'px';
+      e.preventDefault();
+    } else if (isDown && e.touches.length === 1) {
+      // Drag
+      const pos = getPos(e);
+      el.style.left = (origX + pos.x - startX) + "px";
+      el.style.top = (origY + pos.y - startY) + "px";
+      el.style.right = 'auto';
+      el.style.bottom = 'auto';
+    }
+  });
+
+  // End dragging/pinching (Mouse & Touch)
   document.addEventListener('mouseup', () => isDown = false);
-  document.addEventListener('touchend', () => isDown = false);
+  document.addEventListener('touchend', e => {
+    if (e.touches.length === 0) {
+      isDown = false;
+      isPinching = false;
+    } else if (e.touches.length === 1 && isPinching) {
+      isPinching = false;
+      // Switch to drag mode
+      const rect = el.getBoundingClientRect();
+      const pos = getPos(e);
+      startX = pos.x;
+      startY = pos.y;
+      origX = rect.left;
+      origY = rect.top;
+      isDown = true;
+    }
+  });
 })(localVideoWrapper);
 
+// Prevent default pinch zoom on page
 document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('touchmove', e => {
+  if (e.touches.length > 1) {
+    e.preventDefault();
+  }
+}, { passive: false });
 
 // ================================================================
 // WEBRTC LOGIC
