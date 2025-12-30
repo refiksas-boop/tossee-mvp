@@ -160,7 +160,7 @@
       -webkit-text-stroke: 0.5px black;
     }
 
-    /* Effects Menu - FIXED: More compact */
+    /* Effects Menu - ACCORDION STYLE */
     .effects-menu {
       display: none;
       position: absolute;
@@ -170,10 +170,10 @@
       background: rgba(20, 13, 66, 0.98);
       border: 2px solid #00C6FF;
       border-radius: 12px;
-      padding: 8px;
-      width: 90%;
-      max-width: 280px;
-      max-height: 320px;
+      padding: 6px;
+      width: 85%;
+      max-width: 240px;
+      max-height: 280px;
       overflow-y: auto;
       z-index: 1800;
       box-shadow: 0 8px 32px rgba(0, 198, 255, 0.5);
@@ -183,29 +183,71 @@
       display: block;
     }
 
-    .effects-menu h4 {
-      margin: 0 0 6px 0;
+    .filter-section {
+      margin-bottom: 4px;
+      border-bottom: 1px solid rgba(0, 198, 255, 0.2);
+      padding-bottom: 4px;
+    }
+
+    .filter-section:last-child {
+      margin-bottom: 0;
+      border-bottom: none;
+    }
+
+    .filter-section h4 {
+      margin: 0;
+      padding: 8px 6px;
       color: #00c6ff;
-      font-size: 10px;
+      font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      cursor: pointer;
+      background: rgba(0, 198, 255, 0.05);
+      border-radius: 6px;
+      transition: background 0.2s;
+      user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .filter-section h4:hover {
+      background: rgba(0, 198, 255, 0.15);
+    }
+
+    .filter-section h4::after {
+      content: '▼';
+      font-size: 8px;
+      transition: transform 0.3s;
+    }
+
+    .filter-section.collapsed h4::after {
+      transform: rotate(-90deg);
     }
 
     .effects-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 5px;
-      margin-bottom: 8px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      margin-top: 6px;
+      max-height: 200px;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    .filter-section.collapsed .effects-grid {
+      max-height: 0;
+      margin-top: 0;
     }
 
     .effect-btn {
       background: rgba(0, 198, 255, 0.1);
       border: 2px solid rgba(0, 198, 255, 0.3);
       border-radius: 6px;
-      padding: 6px 2px;
+      padding: 8px 4px;
       cursor: pointer;
       transition: all 0.2s;
-      font-size: 8px;
+      font-size: 9px;
       color: #fff;
       text-align: center;
       line-height: 1.2;
@@ -221,14 +263,6 @@
       background: rgba(0, 198, 255, 0.3);
       border-color: #00c6ff;
       box-shadow: 0 0 10px rgba(0, 198, 255, 0.5);
-    }
-
-    .filter-section {
-      margin-bottom: 10px;
-    }
-
-    .filter-section:last-child {
-      margin-bottom: 0;
     }
 
     /* Menu */
@@ -621,7 +655,7 @@
         </div>
       </div>
 
-      <div class="filter-section">
+      <div class="filter-section collapsed">
         <h4>✨ Face Effects</h4>
         <div class="effects-grid">
           <button class="effect-btn active" data-face="none">Off</button>
@@ -635,7 +669,7 @@
         </div>
       </div>
 
-      <div class="filter-section">
+      <div class="filter-section collapsed">
         <h4>💫 Special FX</h4>
         <div class="effects-grid">
           <button class="effect-btn active" data-special="none">None</button>
@@ -1185,6 +1219,15 @@ document.addEventListener('click', (e) => {
   if (!effectsMenu.contains(e.target) && e.target !== effectsBtn) {
     effectsMenu.classList.remove('active');
   }
+});
+
+// Accordion functionality for filter sections
+document.querySelectorAll('.filter-section h4').forEach(header => {
+  header.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const section = header.parentElement;
+    section.classList.toggle('collapsed');
+  });
 });
 
 // Handle effect button clicks
