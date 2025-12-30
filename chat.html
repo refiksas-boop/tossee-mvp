@@ -170,9 +170,10 @@
       background: rgba(20, 13, 66, 0.98);
       border: 2px solid #00C6FF;
       border-radius: 12px;
-      padding: 15px;
-      width: 280px;
-      max-height: 400px;
+      padding: 10px;
+      width: 95%;
+      max-width: 300px;
+      max-height: 350px;
       overflow-y: auto;
       z-index: 1800;
       box-shadow: 0 8px 32px rgba(0, 198, 255, 0.5);
@@ -183,28 +184,28 @@
     }
 
     .effects-menu h4 {
-      margin: 0 0 12px 0;
+      margin: 0 0 8px 0;
       color: #00c6ff;
-      font-size: 14px;
+      font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 0.5px;
     }
 
     .effects-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin-bottom: 15px;
+      gap: 6px;
+      margin-bottom: 10px;
     }
 
     .effect-btn {
       background: rgba(0, 198, 255, 0.1);
       border: 2px solid rgba(0, 198, 255, 0.3);
-      border-radius: 8px;
-      padding: 10px 5px;
+      border-radius: 6px;
+      padding: 8px 3px;
       cursor: pointer;
       transition: all 0.2s;
-      font-size: 11px;
+      font-size: 9px;
       color: #fff;
       text-align: center;
     }
@@ -880,6 +881,14 @@ function applySpecialEffect(effect) {
 function updateVideoFilters() {
   let filters = [];
 
+  // Check if camera is off
+  if (localStream) {
+    const track = localStream.getVideoTracks()[0];
+    if (track && !track.enabled) {
+      filters.push('brightness(0.2)');
+    }
+  }
+
   if (currentColorFilter !== 'none' && colorFilters[currentColorFilter]) {
     filters.push(colorFilters[currentColorFilter]);
   }
@@ -1252,7 +1261,7 @@ cameraBtn.addEventListener("click", () => {
   const track = localStream.getVideoTracks()[0];
   track.enabled = !track.enabled;
   cameraBtn.classList.toggle("off", !track.enabled);
-  localVideo.style.filter = track.enabled ? "none" : "brightness(0.2)";
+  updateVideoFilters();
 });
 
 micBtn.addEventListener("click", () => {
