@@ -80,13 +80,13 @@ function tossee_update_profile_handler() {
         }
     }
 
-    // Foto – tik jei tikrai base64 image
+    // Profilio foto – tik jei tikrai base64 image
     if (
         ! empty($data['photo']) &&
         is_string($data['photo']) &&
         strpos($data['photo'], 'data:image/') === 0
     ) {
-        $update['photo'] = $data['photo'];
+        $update['profile_photo'] = $data['photo'];
     }
 
     // Jei nėra ką saugoti
@@ -161,7 +161,7 @@ function tossee_get_profile_handler() {
     global $wpdb;
     $table = $wpdb->prefix . 'tossee_users';
 
-    // 2. Fetch from custom DB (BE registration_photo)
+    // 2. Fetch from custom DB (profile_photo, NOT registration photo)
     $user = $wpdb->get_row(
         $wpdb->prepare(
             "SELECT
@@ -175,7 +175,7 @@ function tossee_get_profile_handler() {
                 state,
                 city,
                 about,
-                photo
+                profile_photo
              FROM $table
              WHERE tossee_id = %s
              LIMIT 1",
@@ -189,7 +189,7 @@ function tossee_get_profile_handler() {
         exit;
     }
 
-    // 3. Return all fields (registration_photo NOT included)
+    // 3. Return profile_photo as 'photo' for HTML compatibility
     $fields = [
         'username',
         'email',
@@ -200,9 +200,17 @@ function tossee_get_profile_handler() {
         'country',
         'state',
         'city',
-        'about',
-        'photo'
+        'about'
     ];
+
+    // Rename profile_photo to photo for frontend
+    if ( isset($user['profile_photo']) ) {
+        $user['photo'] = $user['profile_photo'];
+        unset($user['profile_photo']);
+        $fields[] = 'photo';
+    } else {
+        $fields[] = 'photo';
+    }
 
     foreach ( $fields as $field ) {
         if ( ! isset($user[$field]) ) {
