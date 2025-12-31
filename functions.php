@@ -229,3 +229,6 @@ add_action('template_redirect', function () {
 // Paslepia WP admin barą visiems vartotojams frontend'e
 add_filter('show_admin_bar', '__return_false');
 
+// Tossee profile handlers
+require_once __DIR__ . '/profile-handler.php';
+
