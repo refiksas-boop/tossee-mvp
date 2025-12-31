@@ -161,7 +161,7 @@ function tossee_get_profile_handler() {
     global $wpdb;
     $table = $wpdb->prefix . 'tossee_users';
 
-    // 2. Fetch from custom DB
+    // 2. Fetch from custom DB (BE registration_photo)
     $user = $wpdb->get_row(
         $wpdb->prepare(
             "SELECT
@@ -189,7 +189,7 @@ function tossee_get_profile_handler() {
         exit;
     }
 
-    // 3. Return all fields (HTML will handle which are readonly)
+    // 3. Return all fields (registration_photo NOT included)
     $fields = [
         'username',
         'email',
