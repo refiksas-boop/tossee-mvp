@@ -160,7 +160,7 @@ function tossee_get_profile_handler() {
         exit;
     }
 
-    // 3. Guarantee structure
+    // 3. Return all fields (HTML will handle which are readonly)
     $fields = [
         'username',
         'email',
