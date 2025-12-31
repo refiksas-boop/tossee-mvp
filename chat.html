@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Tossee Chat</title>
+
+  <style>
+    :root {
+      --header-h: 60px;
+      --accent: #140d42;
+      --chat-bg: #140d42;
+      --bg: #0a0033;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      height: var(--header-h);
+      background: var(--accent);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      z-index: 1200;
+    }
+    .logo img { height: 40px; display:block; }
+
+    .right-icon {
+      position: absolute;
+      top: 50%;
+      right: 15px;
+      transform: translateY(-50%);
+      font-size: 22px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .video-wrapper {
+      position: relative;
+      flex: 1;
+      background: black;
+      overflow: hidden;
+    }
+    #remoteVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: black;
+      display: block;
+    }
+
+    #localVideoWrapper {
+      position: absolute;
+      width: 25%;
+      max-width: 320px;
+      aspect-ratio: 16/9;
+      bottom: 15px;
+      right: 15px;
+      border-radius: 10px;
+      border: 2px solid #fff;
+      background: #222;
+      cursor: move;
+      z-index: 1600;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    @media (max-width: 480px) {
+      #localVideoWrapper {
+        width: 40%;
+        max-width: 220px;
+        bottom: 12px;
+        right: 12px;
+      }
+    }
+
+    #localVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      border-radius: 8px;
+      background: #111;
+      pointer-events: none;
+    }
+
+    #effectsCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    #localVideo::-webkit-media-controls,
+    #localVideo::-webkit-media-controls-enclosure,
+    #localVideo::-webkit-media-controls-overlay-play-button,
+    #localVideo::-webkit-media-controls-start-playback-button,
+    #localVideo::-webkit-media-controls-panel {
+      display: none !important;
+      -webkit-appearance: none;
+    }
+
+    .video-controls {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 1700;
+      pointer-events: none;
+    }
+    .icon-btn {
+      pointer-events: auto;
+      background: rgba(0,0,0,0.6);
+      border: none;
+      font-size: 18px;
+      color: white;
+      cursor: pointer;
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .icon-btn.off::before,
+    .icon-btn.off::after {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 2px;
+      background: red;
+      top: 50%;
+      left: 50%;
+      transform-origin: center;
+    }
+    .icon-btn.off::before { transform: translate(-50%, -50%) rotate(45deg); }
+    .icon-btn.off::after  { transform: translate(-50%, -50%) rotate(-45deg); }
+
+    #flipCamera {
+      font-weight: 900;
+      -webkit-text-stroke: 0.5px black;
+    }
+
+    /* Effects Menu */
+    .effects-menu {
+      display: none;
+      position: absolute;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(20, 13, 66, 0.98);
+      border: 2px solid #00C6FF;
+      border-radius: 12px;
+      padding: 10px;
+      width: 95%;
+      max-width: 300px;
+      max-height: 350px;
+      overflow-y: auto;
+      z-index: 1800;
+      box-shadow: 0 8px 32px rgba(0, 198, 255, 0.5);
+    }
+
+    .effects-menu.active {
+      display: block;
+    }
+
+    .effects-menu h4 {
+      margin: 0 0 8px 0;
+      color: #00c6ff;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .effects-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .effect-btn {
+      background: rgba(0, 198, 255, 0.1);
+      border: 2px solid rgba(0, 198, 255, 0.3);
+      border-radius: 6px;
+      padding: 8px 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 9px;
+      color: #fff;
+      text-align: center;
+    }
+
+    .effect-btn:hover {
+      background: rgba(0, 198, 255, 0.2);
+      border-color: #00c6ff;
+      transform: scale(1.05);
+    }
+
+    .effect-btn.active {
+      background: rgba(0, 198, 255, 0.3);
+      border-color: #00c6ff;
+      box-shadow: 0 0 10px rgba(0, 198, 255, 0.5);
+    }
+
+    .filter-section {
+      margin-bottom: 12px;
+    }
+
+    .filter-section:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Menu */
+    .menu-sidebar {
+      position: fixed;
+      top: var(--header-h);
+      right: -240px;
+      width: 220px;
+      height: calc(100% - var(--header-h));
+      padding: 8px;
+      transition: right 0.28s ease;
+      z-index: 1400;
+      overflow-y: auto;
+      text-align: right;
+      pointer-events: none;
+      background: none;
+    }
+    .menu-sidebar.active { right: 0; pointer-events: auto; }
+    .menu-sidebar a {
+      display:block; color:#fff; text-decoration:none; padding:10px 6px;
+    }
+    .menu-sidebar a:hover { color: #00c6ff; }
+
+    /* Chat - FIXED */
+    .chat-area {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      max-height: 40%;
+      background: transparent;
+      z-index: 900;
+      transition: transform 0.4s ease;
+    }
+    .chat-area.hidden .messages,
+    .chat-area.hidden .input-box {
+      display: none;
+    }
+
+    .messages {
+      flex:1;
+      padding:10px;
+      overflow-y:auto;
+      max-height: 5.5em;
+      background: transparent;
+    }
+    .message {
+      margin-bottom:10px;
+      font-size:15px;
+      line-height:1.4em;
+      text-align: left;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .message.mine .message-label {
+      font-weight: 700;
+      color: #0DA8FD;
+      min-width: 40px;
+    }
+
+    .message.mine .message-text {
+      color: #a64dff;
+    }
+
+    .message.theirs .message-label {
+      font-weight: 700;
+      color: #a64dff;
+      min-width: 40px;
+    }
+
+    .message.theirs .message-text {
+      color: #0DA8FD;
+    }
+
+    .message-label {
+      font-weight: 700;
+      min-width: 40px;
+    }
+
+    .message-text {
+      flex: 1;
+    }
+
+    /* Emoji Picker */
+    .emoji-picker {
+      display: none;
+      position: absolute;
+      bottom: 85px;
+      left: 10px;
+      background: rgba(20, 13, 66, 0.98);
+      border: 2px solid #00C6FF;
+      border-radius: 12px;
+      padding: 15px;
+      max-width: 350px;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 198, 255, 0.3);
+    }
+
+    .emoji-picker.active {
+      display: block;
+    }
+
+    .emoji-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 8px;
+    }
+
+    .emoji-item {
+      font-size: 24px;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 6px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .emoji-item:hover {
+      background: rgba(0, 198, 255, 0.2);
+      transform: scale(1.2);
+    }
+
+    .input-area {
+      padding:8px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      background: transparent;
+    }
+    .action-buttons {
+      display:flex;
+      gap:10px;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+    .action-buttons button {
+      border:none;
+      border-radius:20px;
+      padding:6px 12px;
+      cursor:pointer;
+      font-size:14px;
+      font-weight:bold;
+    }
+    .emoji-btn{ background:#444; color:#fff; }
+    .next-btn{ background:#555; color:#fff; }
+    .report-btn{ background:red; color:#fff; }
+    .toggle-chat-btn{ background:#333; color:#fff; }
+
+    .input-box {
+      display:flex; gap:8px;
+    }
+    textarea {
+      flex:1; border-radius:20px; border:none; background:#fff; color:#000;
+      outline:none; resize:none; padding:8px;
+      min-height:32px; max-height:100px;
+    }
+    .send-btn {
+      border:none; border-radius:50%; padding:8px; font-size:16px;
+      cursor:pointer; background:#007bff; color:#fff;
+    }
+
+    /* Status Box */
+    .status-box {
+      position: fixed;
+      bottom: 80px;
+      right: 16px;
+      background: #2563eb;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 9999;
+    }
+
+    /* ========================================
+       REPORT MODAL STYLES
+    ======================================== */
+    .report-modal {
+      display: none;
+      position: fixed;
+      z-index: 10000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .report-modal-content {
+      background: #140D42;
+      border: 2px solid #00c6ff;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0, 198, 255, 0.3);
+    }
+
+    .report-modal-header {
+      margin-bottom: 20px;
+    }
+
+    .report-modal-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: #00c6ff;
+      margin: 0 0 15px 0;
+      text-align: center;
+    }
+
+    .report-modal-description {
+      font-size: 16px;
+      color: #fff;
+      margin: 0 0 30px 0;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .report-options {
+      margin-bottom: 25px;
+    }
+
+    .report-option {
+      background: rgba(0, 198, 255, 0.1);
+      border: 2px solid rgba(0, 198, 255, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .report-option:hover {
+      background: rgba(0, 198, 255, 0.2);
+      border-color: #00c6ff;
+    }
+
+    .report-option.selected {
+      background: rgba(0, 198, 255, 0.3);
+      border-color: #00c6ff;
+      box-shadow: 0 0 15px rgba(0, 198, 255, 0.3);
+    }
+
+    .report-option input[type="radio"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      accent-color: #00c6ff;
+    }
+
+    .report-option label {
+      flex: 1;
+      font-size: 15px;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .report-optional-message {
+      margin-bottom: 30px;
+    }
+
+    .report-optional-message label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #00c6ff;
+    }
+
+    .report-optional-message textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 12px;
+      border: 2px solid rgba(0, 198, 255, 0.3);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+
+    .report-optional-message textarea:focus {
+      outline: none;
+      border-color: #00c6ff;
+      box-shadow: 0 0 10px rgba(0, 198, 255, 0.3);
+    }
+
+    .report-optional-message textarea::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .report-modal-actions {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+    }
+
+    .report-modal-btn {
+      background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+      color: white;
+      border: none;
+      padding: 14px 30px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .report-modal-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 198, 255, 0.4);
+    }
+
+    .report-modal-btn:disabled {
+      background: #555;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .report-modal-btn.cancel {
+      background: linear-gradient(135deg, #666 0%, #444 100%);
+    }
+
+    .report-modal-btn.cancel:hover {
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .report-success-message {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 198, 255, 0.95);
+      color: #140D42;
+      padding: 30px 50px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      text-align: center;
+      z-index: 10001;
+      box-shadow: 0 8px 32px rgba(0, 198, 255, 0.5);
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo"><img src="logo.png" alt="Tossee Logo"></div>
+  <span class="right-icon" id="menuToggle">☰</span>
+</header>
+
+<div class="video-wrapper">
+  <video id="remoteVideo" autoplay playsinline muted="false"></video>
+
+  <div id="localVideoWrapper">
+    <video id="localVideo" autoplay playsinline muted></video>
+    <canvas id="effectsCanvas"></canvas>
+
+    <!-- Effects Menu -->
+    <div id="effectsMenu" class="effects-menu">
+      <div class="filter-section">
+        <h4>🎨 Color Filters</h4>
+        <div class="effects-grid">
+          <button class="effect-btn active" data-filter="none">Normal</button>
+          <button class="effect-btn" data-filter="warm">Warm</button>
+          <button class="effect-btn" data-filter="cool">Cool</button>
+          <button class="effect-btn" data-filter="vintage">Vintage</button>
+          <button class="effect-btn" data-filter="bw">B&W</button>
+          <button class="effect-btn" data-filter="sepia">Sepia</button>
+          <button class="effect-btn" data-filter="vibrant">Vibrant</button>
+          <button class="effect-btn" data-filter="pastel">Pastel</button>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <h4>✨ Face Effects</h4>
+        <div class="effects-grid">
+          <button class="effect-btn" data-face="none">Off</button>
+          <button class="effect-btn" data-face="dog">🐶 Dog</button>
+          <button class="effect-btn" data-face="cat">🐱 Cat</button>
+          <button class="effect-btn" data-face="bunny">🐰 Bunny</button>
+          <button class="effect-btn" data-face="glasses">🕶️ Shades</button>
+          <button class="effect-btn" data-face="crown">👑 Crown</button>
+          <button class="effect-btn" data-face="hearts">💕 Hearts</button>
+          <button class="effect-btn" data-face="stars">⭐ Stars</button>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <h4>💫 Special FX</h4>
+        <div class="effects-grid">
+          <button class="effect-btn" data-special="blur">Blur</button>
+          <button class="effect-btn" data-special="pixel">Pixel</button>
+          <button class="effect-btn" data-special="rainbow">Rainbow</button>
+          <button class="effect-btn" data-special="glow">Glow</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="video-controls">
+      <button id="toggleCamera" class="icon-btn" title="Toggle camera">📷</button>
+      <button id="toggleMic" class="icon-btn" title="Toggle mic">🎤</button>
+      <button id="flipCamera" class="icon-btn" title="Flip camera">↺</button>
+      <button id="effectsBtn" class="icon-btn" title="Effects">✨</button>
+    </div>
+  </div>
+</div>
+
+<div class="menu-sidebar" id="menuSidebar">
+  <a href="https://tossee.com/my-account">My Account</a>
+  <a href="https://tossee.com/pricing-plans">Pricing Plans</a>
+
+  <div class="submenu">
+    <a href="#" id="policiesToggle">Policies ▼</a>
+    <div class="submenu-items" id="policiesMenu" style="display:none">
+      <a href="https://tossee.com/cookie-policy">Cookie Policy</a>
+      <a href="https://tossee.com/privacy-policy-2">Privacy Policy</a>
+      <a href="https://tossee.com/terms-of-use">Terms of Use</a>
+    </div>
+  </div>
+
+  <a href="https://tossee.com/contact">Contact</a>
+  <a href="https://tossee.com/?tossee_logout=1">Logout</a>
+</div>
+
+<div id="chatArea" class="chat-area">
+  <div class="messages" id="messages"></div>
+
+  <!-- Emoji Picker -->
+  <div id="emojiPicker" class="emoji-picker">
+    <div class="emoji-grid" id="emojiGrid"></div>
+  </div>
+
+  <div class="input-area">
+    <div class="action-buttons">
+      <button class="emoji-btn" id="emojiBtn">😊</button>
+      <button class="next-btn" id="nextBtn">➡ Next</button>
+      <button class="report-btn" id="reportBtn">Report</button>
+      <button class="toggle-chat-btn" id="toggleChat">💬</button>
+    </div>
+
+    <div class="input-box">
+      <textarea id="chatInput" placeholder="Type a message..."></textarea>
+      <button class="send-btn" id="sendBtn">➤</button>
+    </div>
+  </div>
+</div>
+
+<div id="statusBox" class="status-box" style="display:none;"></div>
+
+<!-- REPORT MODAL -->
+<div id="reportModal" class="report-modal">
+  <div class="report-modal-content">
+    <div class="report-modal-header">
+      <h2 class="report-modal-title">Report Inappropriate Behavior</h2>
+      <p class="report-modal-description">
+        Please help us keep Tossee safe.<br>
+        Select a reason below. Writing a message is optional.
+      </p>
+    </div>
+
+    <form id="reportForm">
+      <div class="report-options">
+        <div class="report-option" data-value="harassment">
+          <input type="radio" name="reportReason" value="harassment" id="reportOpt1">
+          <label for="reportOpt1">Harassment or offensive behavior</label>
+        </div>
+        <div class="report-option" data-value="nudity">
+          <input type="radio" name="reportReason" value="nudity" id="reportOpt2">
+          <label for="reportOpt2">Nudity or sexual content</label>
+        </div>
+        <div class="report-option" data-value="spam">
+          <input type="radio" name="reportReason" value="spam" id="reportOpt3">
+          <label for="reportOpt3">Spam, scam, or advertising</label>
+        </div>
+      </div>
+
+      <div class="report-optional-message">
+        <label for="reportAdditionalDetails">Additional details (optional)</label>
+        <textarea
+          id="reportAdditionalDetails"
+          name="additionalDetails"
+          placeholder="Briefly describe what happened (optional)"
+        ></textarea>
+      </div>
+
+      <div class="report-modal-actions">
+        <button type="button" class="report-modal-btn cancel" id="cancelReportBtn">Cancel</button>
+        <button type="submit" class="report-modal-btn" id="submitReportBtn" disabled>Report</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- SUCCESS MESSAGE -->
+<div id="reportSuccessMessage" class="report-success-message">
+  Thank you for your report.<br>We'll review it shortly.
+</div>
+
+<!-- Face-api.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.min.js"></script>
+
+<script>
+// ================================================================
+// UI CONTROLS
+// ================================================================
+const menuToggle = document.getElementById("menuToggle");
+const menuSidebar = document.getElementById("menuSidebar");
+menuToggle.addEventListener("click", () => menuSidebar.classList.toggle("active"));
+
+const policiesToggle = document.getElementById("policiesToggle");
+const policiesMenu = document.getElementById("policiesMenu");
+policiesToggle.addEventListener("click", e => {
+  e.preventDefault();
+  policiesMenu.style.display = (policiesMenu.style.display === "block") ? "none" : "block";
+});
+
+const localVideoWrapper = document.getElementById("localVideoWrapper");
+const localVideo = document.getElementById("localVideo");
+const remoteVideo = document.getElementById("remoteVideo");
+const cameraBtn = document.getElementById("toggleCamera");
+const micBtn = document.getElementById("toggleMic");
+const flipCameraBtn = document.getElementById("flipCamera");
+const effectsBtn = document.getElementById("effectsBtn");
+const effectsMenu = document.getElementById("effectsMenu");
+const effectsCanvas = document.getElementById("effectsCanvas");
+const chatArea = document.getElementById("chatArea");
+const toggleChat = document.getElementById("toggleChat");
+const sendBtn = document.getElementById("sendBtn");
+const chatInput = document.getElementById("chatInput");
+const messages = document.getElementById("messages");
+const nextBtn = document.getElementById("nextBtn");
+const statusBox = document.getElementById("statusBox");
+
+// ================================================================
+// USER ID from URL
+// ================================================================
+const params = new URLSearchParams(window.location.search);
+const userId = params.get("uid");
+
+if (!userId) {
+  alert("User not authorized. Missing uid.");
+  window.location.href = "https://tossee.com/login";
+}
+
+console.log("[USER ID]", userId);
+
+// ================================================================
+// STATUS BOX
+// ================================================================
+function showStatus(text) {
+  statusBox.textContent = text;
+  statusBox.style.display = "block";
+}
+
+function hideStatus() {
+  statusBox.style.display = "none";
+}
+
+// ================================================================
+// EFFECTS SYSTEM
+// ================================================================
+let currentColorFilter = 'none';
+let currentFaceEffect = 'none';
+let currentSpecialEffect = 'none';
+let faceApiLoaded = false;
+let detectionInterval = null;
+
+// Color filter presets
+const colorFilters = {
+  none: '',
+  warm: 'sepia(0.3) saturate(1.4) brightness(1.1)',
+  cool: 'hue-rotate(180deg) saturate(1.2)',
+  vintage: 'sepia(0.5) contrast(1.2) brightness(0.9)',
+  bw: 'grayscale(100%)',
+  sepia: 'sepia(100%)',
+  vibrant: 'saturate(2) contrast(1.2)',
+  pastel: 'saturate(0.6) brightness(1.2) contrast(0.9)'
+};
+
+// Special effects
+const specialEffects = {
+  blur: 'blur(3px)',
+  pixel: '',  // Handled via canvas
+  rainbow: 'hue-rotate(var(--hue, 0deg))',
+  glow: 'brightness(1.3) contrast(1.2) saturate(1.5)'
+};
+
+// Load face-api models
+async function loadFaceApiModels() {
+  try {
+    const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
+    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+    faceApiLoaded = true;
+    console.log('[FACE-API] Models loaded successfully');
+  } catch (err) {
+    console.error('[FACE-API] Failed to load models:', err);
+  }
+}
+
+// Initialize effects canvas
+function initEffectsCanvas() {
+  const ctx = effectsCanvas.getContext('2d');
+  effectsCanvas.width = localVideo.videoWidth || 640;
+  effectsCanvas.height = localVideo.videoHeight || 480;
+}
+
+// Apply color filter
+function applyColorFilter(filter) {
+  currentColorFilter = filter;
+  updateVideoFilters();
+}
+
+// Apply special effect
+function applySpecialEffect(effect) {
+  currentSpecialEffect = effect;
+
+  if (effect === 'rainbow') {
+    // Animate rainbow hue rotation
+    let hue = 0;
+    setInterval(() => {
+      hue = (hue + 2) % 360;
+      localVideo.style.setProperty('--hue', `${hue}deg`);
+    }, 50);
+  }
+
+  updateVideoFilters();
+}
+
+// Update video filters
+function updateVideoFilters() {
+  let filters = [];
+
+  // Check if camera is off
+  if (localStream) {
+    const track = localStream.getVideoTracks()[0];
+    if (track && !track.enabled) {
+      filters.push('brightness(0.2)');
+    }
+  }
+
+  if (currentColorFilter !== 'none' && colorFilters[currentColorFilter]) {
+    filters.push(colorFilters[currentColorFilter]);
+  }
+
+  if (currentSpecialEffect !== 'none' && specialEffects[currentSpecialEffect]) {
+    filters.push(specialEffects[currentSpecialEffect]);
+  }
+
+  localVideo.style.filter = filters.join(' ');
+}
+
+// Draw face effects on canvas
+async function drawFaceEffects() {
+  if (!faceApiLoaded || currentFaceEffect === 'none') {
+    const ctx = effectsCanvas.getContext('2d');
+    ctx.clearRect(0, 0, effectsCanvas.width, effectsCanvas.height);
+    return;
+  }
+
+  try {
+    const detections = await faceapi
+      .detectAllFaces(localVideo, new faceapi.TinyFaceDetectorOptions())
+      .withFaceLandmarks();
+
+    const ctx = effectsCanvas.getContext('2d');
+    ctx.clearRect(0, 0, effectsCanvas.width, effectsCanvas.height);
+
+    if (detections && detections.length > 0) {
+      detections.forEach(detection => {
+        const landmarks = detection.landmarks;
+
+        switch(currentFaceEffect) {
+          case 'dog':
+            drawDogFilter(ctx, landmarks);
+            break;
+          case 'cat':
+            drawCatEars(ctx, landmarks);
+            break;
+          case 'bunny':
+            drawBunnyEars(ctx, landmarks);
+            break;
+          case 'glasses':
+            drawSunglasses(ctx, landmarks);
+            break;
+          case 'crown':
+            drawCrown(ctx, landmarks);
+            break;
+          case 'hearts':
+            drawHearts(ctx, landmarks);
+            break;
+          case 'stars':
+            drawStars(ctx, landmarks);
+            break;
+        }
+      });
+    }
+  } catch (err) {
+    console.error('[FACE EFFECTS] Error:', err);
+  }
+}
+
+// Face effect drawing functions
+function drawDogFilter(ctx, landmarks) {
+  const nose = landmarks.getNose();
+  const leftEye = landmarks.getLeftEye();
+  const rightEye = landmarks.getRightEye();
+
+  // Dog ears
+  const earSize = 40;
+  ctx.fillStyle = '#8B4513';
+  ctx.beginPath();
+  ctx.arc(leftEye[0].x - 30, leftEye[0].y - 50, earSize, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(rightEye[3].x + 30, rightEye[3].y - 50, earSize, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Dog nose
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(nose[3].x, nose[3].y, 15, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Tongue
+  ctx.fillStyle = '#FF69B4';
+  ctx.beginPath();
+  ctx.ellipse(nose[3].x, nose[3].y + 25, 12, 20, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawCatEars(ctx, landmarks) {
+  const leftEye = landmarks.getLeftEye();
+  const rightEye = landmarks.getRightEye();
+
+  // Cat ears (triangles)
+  ctx.fillStyle = '#FFB6C1';
+  ctx.strokeStyle = '#FF69B4';
+  ctx.lineWidth = 2;
+
+  // Left ear
+  ctx.beginPath();
+  ctx.moveTo(leftEye[0].x - 20, leftEye[0].y - 60);
+  ctx.lineTo(leftEye[0].x - 50, leftEye[0].y - 100);
+  ctx.lineTo(leftEye[0].x + 10, leftEye[0].y - 80);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Right ear
+  ctx.beginPath();
+  ctx.moveTo(rightEye[3].x + 20, rightEye[3].y - 60);
+  ctx.lineTo(rightEye[3].x + 50, rightEye[3].y - 100);
+  ctx.lineTo(rightEye[3].x - 10, rightEye[3].y - 80);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
+
+function drawBunnyEars(ctx, landmarks) {
+  const leftEye = landmarks.getLeftEye();
+  const rightEye = landmarks.getRightEye();
+
+  ctx.fillStyle = '#FFB6C1';
+  ctx.strokeStyle = '#FF69B4';
+  ctx.lineWidth = 2;
+
+  // Left bunny ear
+  ctx.beginPath();
+  ctx.ellipse(leftEye[0].x - 25, leftEye[0].y - 80, 15, 50, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Right bunny ear
+  ctx.beginPath();
+  ctx.ellipse(rightEye[3].x + 25, rightEye[3].y - 80, 15, 50, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+}
+
+function drawSunglasses(ctx, landmarks) {
+  const leftEye = landmarks.getLeftEye();
+  const rightEye = landmarks.getRightEye();
+
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 3;
+
+  // Left lens
+  ctx.beginPath();
+  ctx.ellipse(leftEye[3].x, leftEye[3].y, 30, 20, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Right lens
+  ctx.beginPath();
+  ctx.ellipse(rightEye[0].x, rightEye[0].y, 30, 20, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Bridge
+  ctx.beginPath();
+  ctx.moveTo(leftEye[3].x + 30, leftEye[3].y);
+  ctx.lineTo(rightEye[0].x - 30, rightEye[0].y);
+  ctx.stroke();
+}
+
+function drawCrown(ctx, landmarks) {
+  const jaw = landmarks.getJawOutline();
+  const top = jaw[8];
+
+  ctx.fillStyle = '#FFD700';
+  ctx.strokeStyle = '#FFA500';
+  ctx.lineWidth = 2;
+
+  // Crown
+  ctx.beginPath();
+  ctx.moveTo(top.x - 60, top.y - 80);
+  ctx.lineTo(top.x - 45, top.y - 100);
+  ctx.lineTo(top.x - 30, top.y - 85);
+  ctx.lineTo(top.x - 15, top.y - 105);
+  ctx.lineTo(top.x, top.y - 85);
+  ctx.lineTo(top.x + 15, top.y - 105);
+  ctx.lineTo(top.x + 30, top.y - 85);
+  ctx.lineTo(top.x + 45, top.y - 100);
+  ctx.lineTo(top.x + 60, top.y - 80);
+  ctx.lineTo(top.x + 60, top.y - 70);
+  ctx.lineTo(top.x - 60, top.y - 70);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
+
+function drawHearts(ctx, landmarks) {
+  const leftEye = landmarks.getLeftEye();
+  const rightEye = landmarks.getRightEye();
+
+  ctx.fillStyle = '#FF69B4';
+
+  // Draw heart above each eye
+  [leftEye[3], rightEye[0]].forEach(point => {
+    const x = point.x;
+    const y = point.y - 40;
+    const size = 20;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y + size / 4);
+    ctx.bezierCurveTo(x, y, x - size / 2, y - size / 2, x - size / 2, y - size / 4);
+    ctx.bezierCurveTo(x - size / 2, y, x, y + size / 2, x, y + size);
+    ctx.bezierCurveTo(x, y + size / 2, x + size / 2, y, x + size / 2, y - size / 4);
+    ctx.bezierCurveTo(x + size / 2, y - size / 2, x, y, x, y + size / 4);
+    ctx.fill();
+  });
+}
+
+function drawStars(ctx, landmarks) {
+  const nose = landmarks.getNose();
+  const leftEye = landmarks.getLeftEye();
+  const rightEye = landmarks.getRightEye();
+
+  ctx.fillStyle = '#FFD700';
+  ctx.strokeStyle = '#FFA500';
+  ctx.lineWidth = 2;
+
+  // Draw stars around face
+  const positions = [
+    {x: leftEye[0].x - 40, y: leftEye[0].y - 30},
+    {x: rightEye[3].x + 40, y: rightEye[3].y - 30},
+    {x: nose[3].x, y: nose[3].y - 60}
+  ];
+
+  positions.forEach(pos => {
+    drawStar(ctx, pos.x, pos.y, 5, 15, 7);
+  });
+}
+
+function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+  let rot = Math.PI / 2 * 3;
+  let x = cx;
+  let y = cy;
+  const step = Math.PI / spikes;
+
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - outerRadius);
+
+  for (let i = 0; i < spikes; i++) {
+    x = cx + Math.cos(rot) * outerRadius;
+    y = cy + Math.sin(rot) * outerRadius;
+    ctx.lineTo(x, y);
+    rot += step;
+
+    x = cx + Math.cos(rot) * innerRadius;
+    y = cy + Math.sin(rot) * innerRadius;
+    ctx.lineTo(x, y);
+    rot += step;
+  }
+
+  ctx.lineTo(cx, cy - outerRadius);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
+
+// Start face detection loop
+function startFaceDetection() {
+  if (detectionInterval) return;
+
+  detectionInterval = setInterval(() => {
+    if (currentFaceEffect !== 'none') {
+      drawFaceEffects();
+    }
+  }, 100); // Update every 100ms
+}
+
+// Stop face detection
+function stopFaceDetection() {
+  if (detectionInterval) {
+    clearInterval(detectionInterval);
+    detectionInterval = null;
+  }
+  const ctx = effectsCanvas.getContext('2d');
+  ctx.clearRect(0, 0, effectsCanvas.width, effectsCanvas.height);
+}
+
+// Effects button handler
+effectsBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  effectsMenu.classList.toggle('active');
+});
+
+// Close effects menu when clicking outside
+document.addEventListener('click', (e) => {
+  if (!effectsMenu.contains(e.target) && e.target !== effectsBtn) {
+    effectsMenu.classList.remove('active');
+  }
+});
+
+// Handle effect button clicks
+document.querySelectorAll('.effect-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    // Color filters
+    if (this.dataset.filter) {
+      document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      applyColorFilter(this.dataset.filter);
+    }
+
+    // Face effects
+    if (this.dataset.face) {
+      document.querySelectorAll('[data-face]').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      currentFaceEffect = this.dataset.face;
+
+      if (this.dataset.face === 'none') {
+        stopFaceDetection();
+      } else {
+        startFaceDetection();
+      }
+    }
+
+    // Special effects
+    if (this.dataset.special) {
+      document.querySelectorAll('[data-special]').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      applySpecialEffect(this.dataset.special);
+    }
+  });
+});
+
+// ================================================================
+// LOCAL STREAM SETUP
+// ================================================================
+let localStream = null;
+let currentFacingMode = 'user'; // 'user' = front, 'environment' = back
+
+async function startLocalVideo(facingMode = 'user') {
+  try {
+    // Stop existing stream if any
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+    }
+
+    localStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: facingMode },
+      audio: true
+    });
+    localVideo.srcObject = localStream;
+    currentFacingMode = facingMode;
+
+    // Initialize canvas after video loads
+    localVideo.addEventListener('loadedmetadata', () => {
+      initEffectsCanvas();
+    });
+
+    console.log("[LOCAL VIDEO] Started with facingMode:", facingMode);
+  } catch (err) {
+    console.error('[LOCAL VIDEO] Error:', err);
+    showStatus("Camera/Mic access denied!");
+  }
+}
+
+// Start immediately and load face detection models
+startLocalVideo();
+loadFaceApiModels();
+
+// ================================================================
+// CAMERA/MIC TOGGLE
+// ================================================================
+cameraBtn.addEventListener("click", () => {
+  if (!localStream) return;
+  const track = localStream.getVideoTracks()[0];
+  track.enabled = !track.enabled;
+  cameraBtn.classList.toggle("off", !track.enabled);
+  updateVideoFilters();
+});
+
+micBtn.addEventListener("click", () => {
+  if (!localStream) return;
+  const track = localStream.getAudioTracks()[0];
+  track.enabled = !track.enabled;
+  micBtn.classList.toggle("off", !track.enabled);
+});
+
+// Flip camera (front/back)
+flipCameraBtn.addEventListener("click", async () => {
+  const newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+  await startLocalVideo(newFacingMode);
+
+  // Update peer connection if active
+  if (pc && localStream) {
+    const videoTrack = localStream.getVideoTracks()[0];
+    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+    if (sender) {
+      await sender.replaceTrack(videoTrack);
+      console.log("[CAMERA] Flipped to:", newFacingMode);
+    }
+  }
+});
+
+// ================================================================
+// CHAT - WITH DATA CHANNEL
+// ================================================================
+let dataChannel = null;
+
+sendBtn.addEventListener("click", sendMessage);
+chatInput.addEventListener("keypress", e => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+
+  // Display in UI with "You" label
+  addMessageToUI(text, true);
+
+  // Send via data channel
+  if (dataChannel && dataChannel.readyState === 'open') {
+    dataChannel.send(JSON.stringify({
+      type: 'message',
+      text: text,
+      from: userId,
+      timestamp: Date.now()
+    }));
+    console.log("[CHAT] Sent message:", text);
+  } else {
+    console.warn("[CHAT] Data channel not ready!");
+  }
+
+  chatInput.value = "";
+}
+
+function addMessageToUI(text, isMine = false) {
+  const msg = document.createElement("div");
+  msg.className = isMine ? "message mine" : "message theirs";
+
+  // Add label (You or Them)
+  const label = document.createElement("span");
+  label.className = "message-label";
+  label.textContent = isMine ? "You:" : "Them:";
+
+  // Add message text
+  const textSpan = document.createElement("span");
+  textSpan.className = "message-text";
+  textSpan.textContent = text;
+
+  msg.appendChild(label);
+  msg.appendChild(textSpan);
+
+  messages.appendChild(msg);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+toggleChat.addEventListener("click", () => chatArea.classList.toggle("hidden"));
+
+// ================================================================
+// EMOJI PICKER
+// ================================================================
+const emojiBtn = document.getElementById('emojiBtn');
+const emojiPicker = document.getElementById('emojiPicker');
+const emojiGrid = document.getElementById('emojiGrid');
+
+// 100 popular emojis
+const emojis = [
+  '😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃',
+  '😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙',
+  '😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔',
+  '🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥',
+  '😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮',
+  '🤧','🥵','🥶','😶‍🌫️','🥴','😵','🤯','🤠','🥳','😎',
+  '🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳',
+  '🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖',
+  '😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬',
+  '👍','👎','👌','✌️','🤞','🤟','🤘','🤙','👋','🤚'
+];
+
+// Populate emoji grid
+emojis.forEach(emoji => {
+  const emojiItem = document.createElement('div');
+  emojiItem.className = 'emoji-item';
+  emojiItem.textContent = emoji;
+  emojiItem.onclick = () => {
+    chatInput.value += emoji;
+    chatInput.focus();
+    emojiPicker.classList.remove('active');
+  };
+  emojiGrid.appendChild(emojiItem);
+});
+
+// Toggle emoji picker
+emojiBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  emojiPicker.classList.toggle('active');
+});
+
+// Close emoji picker when clicking outside
+document.addEventListener('click', (e) => {
+  if (!emojiPicker.contains(e.target) && e.target !== emojiBtn) {
+    emojiPicker.classList.remove('active');
+  }
+});
+
+// ================================================================
+// DRAGGABLE PIP (Desktop + Mobile) + PINCH-TO-ZOOM
+// ================================================================
+(function makeDraggable(el) {
+  let isDown = false, startX = 0, startY = 0, origX = 0, origY = 0;
+  let isPinching = false, initialDistance = 0, initialWidth = 0;
+
+  // Helper to get position from mouse or touch event
+  function getPos(e) {
+    return e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
+  }
+
+  // Calculate distance between two touch points
+  function getDistance(touch1, touch2) {
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  // Start dragging (Mouse)
+  el.addEventListener('mousedown', e => {
+    if (e.target.closest('.icon-btn') || e.target.closest('.effects-menu')) return;
+    const rect = el.getBoundingClientRect();
+    const pos = getPos(e);
+    startX = pos.x;
+    startY = pos.y;
+    origX = rect.left;
+    origY = rect.top;
+    isDown = true;
+  });
+
+  // Start dragging or pinching (Touch)
+  el.addEventListener('touchstart', e => {
+    if (e.target.closest('.icon-btn') || e.target.closest('.effects-menu')) return;
+
+    if (e.touches.length === 2) {
+      // Pinch zoom
+      isPinching = true;
+      isDown = false;
+      initialDistance = getDistance(e.touches[0], e.touches[1]);
+      initialWidth = el.offsetWidth;
+      e.preventDefault();
+    } else if (e.touches.length === 1) {
+      // Drag
+      const rect = el.getBoundingClientRect();
+      const pos = getPos(e);
+      startX = pos.x;
+      startY = pos.y;
+      origX = rect.left;
+      origY = rect.top;
+      isDown = true;
+      isPinching = false;
+    }
+  });
+
+  // Move (Mouse)
+  document.addEventListener('mousemove', e => {
+    if (!isDown) return;
+    const pos = getPos(e);
+    el.style.left = (origX + pos.x - startX) + "px";
+    el.style.top = (origY + pos.y - startY) + "px";
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+  });
+
+  // Move or pinch (Touch)
+  document.addEventListener('touchmove', e => {
+    if (isPinching && e.touches.length === 2) {
+      // Pinch zoom
+      const currentDistance = getDistance(e.touches[0], e.touches[1]);
+      const scale = currentDistance / initialDistance;
+      const newWidth = Math.max(150, Math.min(600, initialWidth * scale));
+
+      el.style.width = newWidth + 'px';
+      el.style.maxWidth = newWidth + 'px';
+      e.preventDefault();
+    } else if (isDown && e.touches.length === 1) {
+      // Drag
+      const pos = getPos(e);
+      el.style.left = (origX + pos.x - startX) + "px";
+      el.style.top = (origY + pos.y - startY) + "px";
+      el.style.right = 'auto';
+      el.style.bottom = 'auto';
+    }
+  });
+
+  // End dragging/pinching (Mouse & Touch)
+  document.addEventListener('mouseup', () => isDown = false);
+  document.addEventListener('touchend', e => {
+    if (e.touches.length === 0) {
+      isDown = false;
+      isPinching = false;
+    } else if (e.touches.length === 1 && isPinching) {
+      isPinching = false;
+      // Switch to drag mode
+      const rect = el.getBoundingClientRect();
+      const pos = getPos(e);
+      startX = pos.x;
+      startY = pos.y;
+      origX = rect.left;
+      origY = rect.top;
+      isDown = true;
+    }
+  });
+})(localVideoWrapper);
+
+// Prevent default pinch zoom on page
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('touchmove', e => {
+  if (e.touches.length > 1) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+// ================================================================
+// WEBRTC LOGIC
+// ================================================================
+let pc = null;
+let currentRoomId = null;
+let partnerId = null;
+
+const rtcConfig = {
+  iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+};
+
+// ================================================================
+// MATCHING
+// ================================================================
+async function startMatching() {
+  try {
+    const res = await fetch("https://tossee.com/chat/api/matching.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: userId, action: "join" })
+    });
+
+    const data = await res.json();
+    console.log("[MATCHING]", data);
+
+    if (data.status === "waiting") {
+      showStatus("Waiting for partner... (" + (data.queueSize || 1) + " in queue)");
+      setTimeout(() => checkMatching(), 2000);
+      return;
+    }
+
+    if (data.status === "matched") {
+      currentRoomId = data.roomId;
+      partnerId = data.partnerId;
+      console.log("[MATCHED] Room:", currentRoomId, "Partner:", partnerId);
+      showStatus("Partner found! Connecting...");
+      await setupWebRTC(true);
+      pollSignals();
+    }
+
+  } catch (err) {
+    console.error("[MATCHING] Error:", err);
+    showStatus("Network error. Retrying...");
+    setTimeout(startMatching, 3000);
+  }
+}
+
+async function checkMatching() {
+  try {
+    const res = await fetch("https://tossee.com/chat/api/matching.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: userId, action: "check" })
+    });
+
+    const data = await res.json();
+    console.log("[CHECK]", data);
+
+    if (data.status === "waiting") {
+      showStatus("Waiting for partner... (" + (data.queueSize || 1) + " in queue)");
+      setTimeout(checkMatching, 2000);
+      return;
+    }
+
+    if (data.status === "matched") {
+      currentRoomId = data.roomId;
+      partnerId = data.partnerId;
+      console.log("[MATCHED] Room:", currentRoomId, "Partner:", partnerId);
+      showStatus("Partner found! Connecting...");
+      await setupWebRTC(false);
+      pollSignals();
+    }
+
+  } catch (err) {
+    console.error("[CHECK] Error:", err);
+    setTimeout(checkMatching, 2000);
+  }
+}
+
+// ================================================================
+// WEBRTC SETUP
+// ================================================================
+async function setupWebRTC(isCaller) {
+  if (!localStream) {
+    await startLocalVideo();
+  }
+
+  pc = new RTCPeerConnection(rtcConfig);
+
+  // CREATE DATA CHANNEL (for chat messages)
+  if (isCaller) {
+    dataChannel = pc.createDataChannel("chat");
+    setupDataChannel();
+    console.log("[DATA CHANNEL] Created (caller)");
+  }
+
+  // RECEIVE DATA CHANNEL (for chat messages)
+  pc.ondatachannel = (event) => {
+    dataChannel = event.channel;
+    setupDataChannel();
+    console.log("[DATA CHANNEL] Received (receiver)");
+  };
+
+  // Add local tracks
+  localStream.getTracks().forEach(track => {
+    pc.addTrack(track, localStream);
+  });
+
+  // RECEIVE REMOTE TRACK (with AUDIO FIX)
+  pc.ontrack = (evt) => {
+    console.log("[WEBRTC] Remote track received!", evt.track.kind);
+
+    if (!remoteVideo.srcObject) {
+      remoteVideo.srcObject = evt.streams[0];
+
+      // AUDIO FIX: Unmute and play
+      remoteVideo.muted = false;
+      remoteVideo.volume = 1.0;
+
+      const playPromise = remoteVideo.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          console.log("[AUDIO] ✅ Playing with sound! Volume:", remoteVideo.volume);
+        }).catch(err => {
+          console.log("[AUDIO] ❌ Autoplay blocked:", err.name);
+          showStatus("🔊 Click anywhere to enable audio");
+
+          const enableAudio = () => {
+            remoteVideo.muted = false;
+            remoteVideo.volume = 1.0;
+            remoteVideo.play().then(() => {
+              console.log("[AUDIO] ✅ Audio enabled after click!");
+              hideStatus();
+            });
+            document.body.removeEventListener('click', enableAudio);
+          };
+
+          document.body.addEventListener('click', enableAudio);
+        });
+      }
+    }
+
+    // Show report button when connected
+    reportBtn.style.display = 'inline-block';
+
+    showStatus("Connected! Enjoy your chat!");
+    setTimeout(hideStatus, 3000);
+  };
+
+  // ICE candidates
+  pc.onicecandidate = (evt) => {
+    if (evt.candidate) {
+      console.log("[ICE] Sending candidate");
+      sendSignal("candidate", evt.candidate);
+    }
+  };
+
+  // Connection state
+  pc.onconnectionstatechange = () => {
+    console.log("[WEBRTC] Connection state:", pc.connectionState);
+    if (pc.connectionState === "failed") {
+      showStatus("Connection failed. Click Next to try again.");
+    }
+  };
+
+  // If caller, create offer
+  if (isCaller) {
+    console.log("[WEBRTC] Creating offer...");
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    await sendSignal("offer", offer);
+  }
+}
+
+// ================================================================
+// DATA CHANNEL SETUP
+// ================================================================
+function setupDataChannel() {
+  if (!dataChannel) return;
+
+  dataChannel.onopen = () => {
+    console.log("[DATA CHANNEL] Opened! Chat ready.");
+  };
+
+  dataChannel.onclose = () => {
+    console.log("[DATA CHANNEL] Closed");
+  };
+
+  dataChannel.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === 'message') {
+        console.log("[CHAT] Received message:", data.text);
+        addMessageToUI(data.text, false); // false = partner's message
+      }
+    } catch (e) {
+      console.error("[CHAT] Error parsing message:", e);
+    }
+  };
+}
+
+// ================================================================
+// SIGNALING
+// ================================================================
+async function sendSignal(type, data) {
+  if (!currentRoomId) {
+    console.warn("[SIGNAL] No room ID!");
+    return;
+  }
+
+  try {
+    await fetch("https://tossee.com/chat/api/signaling.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        roomId: currentRoomId,
+        type: type,
+        data: data,
+        userId: userId
+      })
+    });
+    console.log("[SIGNAL] Sent:", type);
+  } catch (e) {
+    console.error("[SIGNAL] Error:", e);
+  }
+}
+
+async function pollSignals() {
+  if (!pc || !currentRoomId) return;
+
+  try {
+    const res = await fetch("https://tossee.com/chat/api/signaling.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        roomId: currentRoomId,
+        type: "check",
+        userId: userId
+      })
+    });
+
+    const data = await res.json();
+
+    if (!data.ok || !data.roomData) {
+      setTimeout(pollSignals, 1500);
+      return;
+    }
+
+    const room = data.roomData;
+
+    // Process offer (if we're receiver)
+    if (!pc.currentRemoteDescription && room.offers && room.offers.length > 0) {
+      const offer = room.offers[room.offers.length - 1];
+      console.log("[SIGNAL] Received offer, creating answer...");
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await sendSignal("answer", answer);
+    }
+
+    // Process answer (if we're caller)
+    if (room.answers && room.answers.length > 0 && pc.signalingState === "have-local-offer") {
+      const answer = room.answers[room.answers.length - 1];
+      console.log("[SIGNAL] Received answer");
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+    }
+
+    // Process ICE candidates
+    if (room.candidates) {
+      for (const c of room.candidates) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(c));
+        } catch (e) {
+          console.warn("[ICE] Error:", e);
+        }
+      }
+    }
+
+  } catch (err) {
+    console.error("[POLL] Error:", err);
+  }
+
+  setTimeout(pollSignals, 1500);
+}
+
+// ================================================================
+// END CALL
+// ================================================================
+function endCall() {
+  console.log("[END CALL]");
+
+  if (dataChannel) {
+    dataChannel.close();
+    dataChannel = null;
+  }
+
+  if (pc) {
+    pc.ontrack = null;
+    pc.onicecandidate = null;
+    pc.ondatachannel = null;
+    pc.close();
+  }
+
+  pc = null;
+  currentRoomId = null;
+  partnerId = null;
+  remoteVideo.srcObject = null;
+
+  // Hide report button
+  reportBtn.style.display = 'none';
+
+  // Clear chat messages
+  messages.innerHTML = '';
+
+  hideStatus();
+}
+
+// ================================================================
+// NEXT BUTTON
+// ================================================================
+nextBtn.addEventListener("click", () => {
+  console.log("[NEXT] Clicked");
+  endCall();
+  showStatus("Searching for next partner...");
+  startMatching();
+});
+
+// ================================================================
+// REPORT SYSTEM
+// ================================================================
+const reportBtn = document.getElementById('reportBtn');
+const reportModal = document.getElementById('reportModal');
+const reportForm = document.getElementById('reportForm');
+const cancelReportBtn = document.getElementById('cancelReportBtn');
+const submitReportBtn = document.getElementById('submitReportBtn');
+const reportSuccessMessage = document.getElementById('reportSuccessMessage');
+const reportOptions = document.querySelectorAll('.report-option');
+const reportRadioButtons = document.querySelectorAll('input[name="reportReason"]');
+
+// Open report modal
+reportBtn.addEventListener('click', () => {
+  if (!partnerId) {
+    alert('No active chat to report.');
+    return;
+  }
+  reportModal.style.display = 'flex';
+});
+
+// Close modal
+cancelReportBtn.addEventListener('click', () => {
+  reportModal.style.display = 'none';
+  reportForm.reset();
+  submitReportBtn.disabled = true;
+  reportOptions.forEach(opt => opt.classList.remove('selected'));
+});
+
+// Handle report option selection
+reportOptions.forEach(option => {
+  option.addEventListener('click', function() {
+    const radio = this.querySelector('input[type="radio"]');
+    radio.checked = true;
+    reportOptions.forEach(opt => opt.classList.remove('selected'));
+    this.classList.add('selected');
+    submitReportBtn.disabled = false;
+  });
+});
+
+// Handle radio button change
+reportRadioButtons.forEach(radio => {
+  radio.addEventListener('change', () => {
+    submitReportBtn.disabled = false;
+  });
+});
+
+// Handle form submission
+reportForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const selectedReason = document.querySelector('input[name="reportReason"]:checked');
+  if (!selectedReason) {
+    alert('Please select a reason for reporting.');
+    return;
+  }
+
+  const additionalDetails = document.getElementById('reportAdditionalDetails').value;
+
+  const reportData = {
+    reporter_id: userId,
+    reported_user_id: partnerId,
+    report_reason: selectedReason.value,
+    additional_details: additionalDetails || null
+  };
+
+  try {
+    const response = await fetch('/api/report.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reportData)
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      reportModal.style.display = 'none';
+      reportSuccessMessage.style.display = 'block';
+
+      setTimeout(() => {
+        reportSuccessMessage.style.display = 'none';
+      }, 3000);
+
+      // Disconnect after report
+      setTimeout(() => {
+        endCall();
+        showStatus("Searching for next partner...");
+        startMatching();
+      }, 1000);
+
+      reportForm.reset();
+      submitReportBtn.disabled = true;
+      reportOptions.forEach(opt => opt.classList.remove('selected'));
+    } else {
+      alert('Failed to submit report. Please try again.');
+    }
+  } catch (error) {
+    console.error('Error submitting report:', error);
+    alert('An error occurred. Please try again.');
+  }
+});
+
+// Close modal when clicking outside
+reportModal.addEventListener('click', (e) => {
+  if (e.target === reportModal) {
+    reportModal.style.display = 'none';
+    reportForm.reset();
+    submitReportBtn.disabled = true;
+    reportOptions.forEach(opt => opt.classList.remove('selected'));
+  }
+});
+
+// Check report button settings
+async function checkReportButtonSetting() {
+  try {
+    const response = await fetch('/api/report.php', {
+      method: 'GET'
+    });
+
+    const data = await response.json();
+
+    if (data.success && !data.enabled) {
+      reportBtn.style.display = 'none';
+    }
+  } catch (error) {
+    console.error('Error checking report button setting:', error);
+  }
+}
+
+// ================================================================
+// AUTO-START ON PAGE LOAD
+// ================================================================
+window.addEventListener("load", () => {
+  console.log("[INIT] Starting matching...");
+  showStatus("Starting...");
+
+  // Hide report button initially (will show when connected)
+  reportBtn.style.display = 'none';
+
+  // Check report button settings
+  checkReportButtonSetting();
+
+  setTimeout(() => {
+    startMatching();
+  }, 1000);
+});
+
+</script>
+</body>
+</html>

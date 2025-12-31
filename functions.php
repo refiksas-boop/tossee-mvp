@@ -229,3 +229,7 @@ add_action('template_redirect', function () {
 // Paslepia WP admin barą visiems vartotojams frontend'e
 add_filter('show_admin_bar', '__return_false');
 
+// Include Tossee custom functionality
+require_once get_stylesheet_directory() . '/database-setup.php';
+require_once get_stylesheet_directory() . '/tossee-api.php';
+
