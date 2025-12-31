@@ -10,16 +10,16 @@ function tossee_update_profile_handler() {
     // Visada JSON
     header('Content-Type: application/json; charset=utf-8');
 
-    // 1. AUTH – tik per COOKIE
-    if ( empty($_COOKIE['tossee_uid']) ) {
+    // 1. AUTH – naudojam plugin'o funkciją
+    $tossee_id = tossee_get_current_user_id();
+
+    if ( ! $tossee_id ) {
         echo json_encode([
             'error' => 'no_auth',
-            'message' => 'tossee_uid cookie missing'
+            'message' => 'User not authenticated'
         ]);
         exit;
     }
-
-    $tossee_id = sanitize_text_field($_COOKIE['tossee_uid']);
 
     // 2. Nuskaityti JSON body
     $raw = file_get_contents('php://input');
@@ -121,13 +121,13 @@ function tossee_get_profile_handler() {
 
     header('Content-Type: application/json; charset=utf-8');
 
-    // 1. Auth – TIK COOKIE
-    if ( empty($_COOKIE['tossee_uid']) ) {
+    // 1. Auth – naudojam plugin'o funkciją
+    $tossee_id = tossee_get_current_user_id();
+
+    if ( ! $tossee_id ) {
         echo json_encode(['error' => 'no_auth']);
         exit;
     }
-
-    $tossee_id = sanitize_text_field($_COOKIE['tossee_uid']);
 
     global $wpdb;
     $table = $wpdb->prefix . 'tossee_users';
