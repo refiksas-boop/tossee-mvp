@@ -2,6 +2,32 @@
    TOSSEE – PROFILE UPDATE HANDLER
 ================================ */
 
+// AUTO-MIGRATION: Prideda trūkstamus stulpelius prie lentelės
+function tossee_ensure_profile_columns() {
+    global $wpdb;
+    $table = $wpdb->prefix . 'tossee_users';
+
+    $columns_to_add = [
+        'first_name' => "VARCHAR(60) DEFAULT '' NOT NULL",
+        'last_name'  => "VARCHAR(60) DEFAULT '' NOT NULL",
+        'gender'     => "VARCHAR(20) DEFAULT '' NOT NULL",
+        'country'    => "VARCHAR(100) DEFAULT '' NOT NULL",
+        'state'      => "VARCHAR(100) DEFAULT '' NOT NULL",
+        'city'       => "VARCHAR(100) DEFAULT '' NOT NULL",
+        'about'      => "TEXT NULL",
+    ];
+
+    foreach ( $columns_to_add as $column => $definition ) {
+        $column_exists = $wpdb->get_results(
+            $wpdb->prepare( "SHOW COLUMNS FROM `$table` LIKE %s", $column )
+        );
+
+        if ( empty( $column_exists ) ) {
+            $wpdb->query( "ALTER TABLE `$table` ADD COLUMN `$column` $definition" );
+        }
+    }
+}
+
 add_action('admin_post_nopriv_tossee_update_profile', 'tossee_update_profile_handler');
 add_action('admin_post_tossee_update_profile',        'tossee_update_profile_handler');
 
@@ -120,6 +146,9 @@ add_action('admin_post_tossee_get_profile',        'tossee_get_profile_handler')
 function tossee_get_profile_handler() {
 
     header('Content-Type: application/json; charset=utf-8');
+
+    // AUTO-MIGRATION: Prideda trūkstamus stulpelius jei jų nėra
+    tossee_ensure_profile_columns();
 
     // 1. Auth – naudojam plugin'o funkciją
     $tossee_id = tossee_get_current_user_id();
