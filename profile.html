@@ -391,14 +391,16 @@ function initCropper(){
     dragMode:'move',
     viewMode:1,
     background:false,
-    autoCropArea:0.65,
+    autoCropArea:0.4,
     autoCrop:true,
     movable:true,
     zoomable:true,
     zoomOnWheel:true,
     cropBoxMovable:false,
     cropBoxResizable:false,
-    toggleDragModeOnDblclick:false
+    toggleDragModeOnDblclick:false,
+    minCropBoxWidth:100,
+    minCropBoxHeight:100
   });
 }
 
