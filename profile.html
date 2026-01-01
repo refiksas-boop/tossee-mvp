@@ -1,171 +1,417 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>My Profile – Tossee</title>
+<meta charset="UTF-8">
+<title>My Profile – Tossee</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #140D42 url("https://tossee.com/wp-content/uploads/2025/09/logo.png") no-repeat center top 40px;
-      background-size: 280px;
-      color: #fff;
-      text-align: center;
-    }
-    .wrap {
-      max-width: 700px;
-      margin: 260px auto 40px;
-      padding: 0 20px;
-    }
-    h2 {
-      font-size: 28px;
-      font-weight: 800;
-      margin-bottom: 30px;
-      color: #00c6ff;
-    }
-    .profile-photo {
-      width: 140px;
-      height: 140px;
-      border: 3px solid #00c6ff;
-      border-radius: 50%;
-      margin: 0 0 25px 0;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      background: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
-    .profile-photo img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .content {
-      background: rgba(0,0,0,0.3);
-      padding: 20px;
-      border-radius: 12px;
-    }
-    .field {
-      margin: 12px 0;
-      font-size: 17px;
-      text-align: left;
-      border-bottom: 1px solid rgba(255,255,255,0.2);
-      padding-bottom: 6px;
-    }
-    .field label {
-      font-weight: bold;
-      margin-right: 6px;
-      color: #a6d9ff;
-    }
-  </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css"/>
+
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+
+input,textarea,select{
+  -webkit-appearance:none;
+  appearance:none;
+  outline:none;
+  box-shadow:none!important;
+  background:transparent!important;
+  color:#fff!important;
+}
+
+input:-webkit-autofill,
+textarea:-webkit-autofill{
+  -webkit-box-shadow:0 0 0 1000px transparent inset!important;
+  -webkit-text-fill-color:#fff!important;
+}
+
+body{
+  margin:0;
+  font-family:Arial;
+  background:#140D42;
+  color:#fff;
+  padding:40px 0;
+}
+
+.card{
+  max-width:480px;
+  margin:auto;
+  background:rgba(0,0,0,.45);
+  border-radius:14px;
+  padding:20px;
+}
+
+h2{text-align:center;color:#00c6ff}
+
+.profile-photo{
+  width:220px;
+  height:220px;
+  border-radius:50%;
+  margin:20px auto;
+  border:3px solid #00c6ff;
+  overflow:hidden;
+  background:#000;
+}
+
+.profile-photo img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  cursor:grab;
+}
+.profile-photo img:active{cursor:grabbing}
+
+label{
+  color:#00c6ff;
+  font-weight:bold;
+  display:block;
+  margin-top:12px;
+}
+
+input,select,textarea{
+  width:100%;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.25);
+}
+
+input[readonly]{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+select option{background:#111;color:#fff}
+
+button{
+  width:100%;
+  margin-top:20px;
+  padding:12px;
+  border:0;
+  border-radius:8px;
+  background:linear-gradient(45deg,#a64dff,#00c6ff);
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.row{
+  padding:10px 0;
+  border-bottom:1px solid rgba(255,255,255,.15)
+}
+
+.cropper-crop-box,
+.cropper-view-box,
+.cropper-face,
+.cropper-center,
+.cropper-line,
+.cropper-point,
+.cropper-dashed{
+  display:none!important;
+}
+</style>
 </head>
 
 <body>
 
-<div class="wrap">
-  <h2 id="profile-title">My Profile</h2>
+<div class="card">
+
+<h2>My Profile</h2>
+
+<div id="viewMode">
 
   <div class="profile-photo">
-    <img id="avatar"
-         src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
-         alt="Profile photo">
+    <img id="viewPhoto" src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
   </div>
 
-  <div class="content">
-    <div class="field"><label>Username:</label> <span id="username">-</span></div>
-    <div class="field"><label>Email:</label> <span id="email">-</span></div>
-
-    <div class="field"><label>First Name:</label> <span id="first_name">-</span></div>
-    <div class="field"><label>Last Name:</label> <span id="last_name">-</span></div>
-
-    <div class="field"><label>Gender:</label> <span id="gender">-</span></div>
-    <div class="field"><label>Date of Birth:</label> <span id="dob">-</span></div>
-
-    <div class="field"><label>Country:</label> <span id="country">-</span></div>
-    <div class="field"><label>City:</label> <span id="city">-</span></div>
-
-    <div class="field"><label>Hobbies:</label> <span id="hobbies">-</span></div>
-    <div class="field"><label>About Me:</label> <span id="about">-</span></div>
+  <div class="row"><label>Username:</label> <span id="v_username"></span></div>
+  <div class="row"><label>Email:</label> <span id="v_email"></span></div>
+  <div class="row"><label>First Name:</label> <span id="v_first"></span></div>
+  <div class="row"><label>Last Name:</label> <span id="v_last"></span></div>
+  <div class="row"><label>Gender:</label> <span id="v_gender"></span></div>
+  <div class="row"><label>DOB:</label> <span id="v_dob"></span></div>
+  <div class="row"><label>Country:</label> <span id="v_country"></span></div>
+  <div class="row" id="v_state_row" style="display:none">
+    <label>State:</label> <span id="v_state"></span>
   </div>
+  <div class="row"><label>City:</label> <span id="v_city"></span></div>
+  <div class="row"><label>About:</label> <span id="v_about"></span></div>
+
+  <button onclick="enterEdit()">EDIT PROFILE</button>
 </div>
 
+<div id="editMode" style="display:none">
+
+  <div class="profile-photo">
+    <img id="previewImage">
+  </div>
+  <input type="file" id="profile_picture" accept="image/*">
+
+  <label>Username</label>
+  <input id="username" readonly>
+
+  <label>Email</label>
+  <input id="email" readonly>
+
+  <label>First Name</label>
+  <input id="first_name">
+
+  <label>Last Name</label>
+  <input id="last_name">
+
+  <label>Gender</label>
+  <select id="gender">
+    <option value="">-- select --</option>
+    <option value="male">Male</option>
+    <option value="female">Female</option>
+    <option value="other">Other</option>
+  </select>
+
+  <label>DOB</label>
+  <input id="dob" type="date" readonly>
+
+  <label>Country</label>
+  <select id="country"></select>
+
+  <div id="stateWrap" style="display:none">
+    <label>State</label>
+    <select id="state"></select>
+  </div>
+
+  <label>City</label>
+  <select id="city"></select>
+
+  <label>About</label>
+  <textarea id="about"></textarea>
+
+  <button onclick="saveProfile()">SAVE</button>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
 <script>
-async function loadProfile() {
-  try {
-    const headers = {};
-    if (window?.wpApiSettings?.nonce) {
-      headers["X-WP-Nonce"] = window.wpApiSettings.nonce;
-    }
+const $ = id => document.getElementById(id);
 
-    // 1) Tossee profile
-    const profile = await fetch("/wp-json/tossee/v1/profile", {
-      credentials: "include",
-      headers
-    }).then(r => r.json());
+const viewMode = $('viewMode');
+const editMode = $('editMode');
 
-    // 2) WP user (with meta)
-    const user = await fetch("/wp-json/wp/v2/users/me?context=edit", {
-      credentials: "include",
-      headers
-    }).then(r => r.json());
+const v_username = $('v_username');
+const v_email = $('v_email');
+const v_first = $('v_first');
+const v_last = $('v_last');
+const v_gender = $('v_gender');
+const v_dob = $('v_dob');
+const v_country = $('v_country');
+const v_state_row = $('v_state_row');
+const v_state = $('v_state');
+const v_city = $('v_city');
+const v_about = $('v_about');
 
-    // ------------------------------
-    // FILL FIELDS
-    // ------------------------------
+const viewPhoto = $('viewPhoto');
+const previewImage = $('previewImage');
+const profile_picture = $('profile_picture');
 
-   // USERNAME + EMAIL
-document.getElementById("username").textContent =
-  profile.username || user.username || "-";
+const username = $('username');
+const email = $('email');
+const first_name = $('first_name');
+const last_name = $('last_name');
+const gender = $('gender');
+const dob = $('dob');
+const country = $('country');
+const stateWrap = $('stateWrap');
+const state = $('state');
+const city = $('city');
+const about = $('about');
 
-document.getElementById("email").textContent =
-  profile.email || user.email || "-";
+let user = {};
+let cropper;
+let countries = [];
 
-// FIRST + LAST NAME
-document.getElementById("first_name").textContent =
-  profile.first_name || user.first_name || "-";
+async function loadProfile(){
+  const res = await fetch('/wp-admin/admin-post.php?action=tossee_get_profile', {
+    credentials: 'include'
+  });
 
-document.getElementById("last_name").textContent =
-  profile.last_name || user.last_name || "-";
-
-// GENDER
-document.getElementById("gender").textContent =
-  user.meta?.gender || profile.gender || "-";
-
-// DOB
-let dob = user.meta?.dob || profile.dob || "-";
-document.getElementById("dob").textContent = dob;
-
-// COUNTRY
-document.getElementById("country").textContent =
-  user.meta?.country || profile.country || "-";
-
-// CITY
-document.getElementById("city").textContent =
-  user.meta?.city || profile.city || "-";
-
-// HOBBIES
-let hobbies = user.meta?.hobbies || profile.hobbies || "-";
-if (Array.isArray(hobbies)) hobbies = hobbies.join(", ");
-document.getElementById("hobbies").textContent = hobbies;
-
-// ABOUT
-document.getElementById("about").textContent =
-  user.meta?.about || profile.about || "-";
-
-
-  
-    const fullName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
-    document.getElementById("profile-title").textContent =
-      fullName ? "Profile of " + fullName : "My Profile";
-
-  } catch (err) {
-    console.error("Profile load error:", err);
+  if(!res.ok){
+    alert('Profile load error');
+    return;
   }
+
+  user = await res.json();
+  loadView();
 }
 
 loadProfile();
+
+function loadView(){
+  v_username.textContent=user.username||'';
+  v_email.textContent=user.email||'';
+  v_first.textContent=user.first_name||'';
+  v_last.textContent=user.last_name||'';
+  v_gender.textContent=user.gender||'';
+  v_dob.textContent=user.dob||'';
+  v_country.textContent=user.country||'';
+  v_city.textContent=user.city||'';
+  v_about.textContent=user.about||'';
+  viewPhoto.src = user.photo && user.photo !== '' ? user.photo : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+
+  if(user.state){
+    v_state.textContent=user.state;
+    v_state_row.style.display='block';
+  }else{
+    v_state_row.style.display='none';
+  }
+}
+
+function enterEdit(){
+  viewMode.style.display='none';
+  editMode.style.display='block';
+
+  username.value=user.username||'';
+  email.value=user.email||'';
+  first_name.value=user.first_name||'';
+  last_name.value=user.last_name||'';
+  gender.value=user.gender||'';
+  dob.value=user.dob||'';
+  about.value=user.about||'';
+
+  // Rodyti esamą profilio foto (jei yra)
+  previewImage.src = user.photo && user.photo !== ''
+    ? user.photo
+    : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+
+  loadCountries();
+
+  // Nekviesti initCropper() - tik kai pasirenka naują failą!
+}
+
+async function saveProfile(){
+  // Jei cropper aktyvus, naudoti cropped versiją
+  if(cropper){
+    user.photo = cropper.getCroppedCanvas({width:300,height:300}).toDataURL();
+  }
+
+  user.first_name=first_name.value;
+  user.last_name=last_name.value;
+  user.gender=gender.value;
+  user.country=country.value;
+  user.state=stateWrap.style.display==='block'?state.value:'';
+  user.city=city.value;
+  user.about=about.value;
+
+  await fetch('/wp-admin/admin-post.php?action=tossee_update_profile', {
+    method:'POST',
+    credentials:'include',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(user)
+  });
+
+  // Destroy cropper prieš grįžtant
+  if(cropper){
+    cropper.destroy();
+    cropper = null;
+  }
+
+  editMode.style.display='none';
+  viewMode.style.display='block';
+
+  // Perkrauti iš serverio
+  await loadProfile();
+}
+
+function loadCountries(){
+  fetch('/wp-content/uploads/countries.json')
+    .then(r=>r.json())
+    .then(data=>{
+      countries=data;
+      country.innerHTML='<option value="">-- select country --</option>';
+      data.forEach(c=>{
+        const o=document.createElement('option');
+        o.value=c.country;
+        o.textContent=c.country;
+        country.appendChild(o);
+      });
+      country.value=user.country||'';
+      country.dispatchEvent(new Event('change'));
+    });
+}
+
+country.onchange=()=>{
+  city.innerHTML='<option value="">-- select city --</option>';
+  state.innerHTML='';
+  stateWrap.style.display='none';
+
+  const c=countries.find(x=>x.country===country.value);
+  if(!c)return;
+
+  if(c.states){
+    stateWrap.style.display='block';
+    state.innerHTML='<option value="">-- select state --</option>';
+    c.states.forEach(s=>{
+      const o=document.createElement('option');
+      o.value=s.state;
+      o.textContent=s.state;
+      state.appendChild(o);
+    });
+    state.value=user.state||'';
+    state.dispatchEvent(new Event('change'));
+  }else if(c.cities){
+    c.cities.forEach(ct=>{
+      const o=document.createElement('option');
+      o.value=ct;
+      o.textContent=ct;
+      city.appendChild(o);
+    });
+    city.value=user.city||'';
+  }
+};
+
+state.onchange=()=>{
+  city.innerHTML='<option value="">-- select city --</option>';
+  const c=countries.find(x=>x.country===country.value);
+  if(!c)return;
+  const s=c.states.find(x=>x.state===state.value);
+  if(!s)return;
+
+  s.cities.forEach(ct=>{
+    const o=document.createElement('option');
+    o.value=ct;
+    o.textContent=ct;
+    city.appendChild(o);
+  });
+  city.value=user.city||'';
+};
+
+function initCropper(){
+  if(cropper) cropper.destroy();
+
+  cropper=new Cropper(previewImage,{
+    aspectRatio:1,
+    dragMode:'move',
+    viewMode:1,
+    background:false,
+    autoCropArea:0.65,
+    autoCrop:true,
+    movable:true,
+    zoomable:true,
+    zoomOnWheel:true,
+    cropBoxMovable:false,
+    cropBoxResizable:false,
+    toggleDragModeOnDblclick:false
+  });
+}
+
+profile_picture.onchange=e=>{
+  const f=e.target.files[0];
+  if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    previewImage.src=ev.target.result;
+    initCropper(); // Cropper tik kai pasirenka naują failą
+  };
+  r.readAsDataURL(f);
+};
 </script>
 
 </body>
