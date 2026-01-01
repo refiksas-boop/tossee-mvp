@@ -203,14 +203,14 @@ function tossee_get_profile_handler() {
         'about'
     ];
 
-    // Rename profile_photo to photo for frontend
-    if ( isset($user['profile_photo']) ) {
+    // Use only profile_photo (NOT registration photo)
+    if ( isset($user['profile_photo']) && !empty($user['profile_photo']) ) {
         $user['photo'] = $user['profile_photo'];
-        unset($user['profile_photo']);
-        $fields[] = 'photo';
     } else {
-        $fields[] = 'photo';
+        $user['photo'] = ''; // Empty - vartotojas dar neįkėlė profilio foto
     }
+    unset($user['profile_photo']);
+    $fields[] = 'photo';
 
     foreach ( $fields as $field ) {
         if ( ! isset($user[$field]) ) {
