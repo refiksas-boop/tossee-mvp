@@ -283,10 +283,50 @@ function enterEdit(){
 
   loadCountries();
 
+  // Įjungti warning - neleidžia išeiti iš puslapio be išsaugojimo
+  window.profileCompleted = false;
+
   // Nekviesti initCropper() - tik kai pasirenka naują failą!
 }
 
 async function saveProfile(){
+  // VALIDACIJA - privalomi laukai
+  if(!first_name.value.trim()){
+    alert('Prašome įvesti vardą!');
+    first_name.focus();
+    return;
+  }
+
+  if(!last_name.value.trim()){
+    alert('Prašome įvesti pavardę!');
+    last_name.focus();
+    return;
+  }
+
+  if(!gender.value){
+    alert('Prašome pasirinkti lytį!');
+    gender.focus();
+    return;
+  }
+
+  if(!country.value){
+    alert('Prašome pasirinkti šalį!');
+    country.focus();
+    return;
+  }
+
+  if(stateWrap.style.display==='block' && !state.value){
+    alert('Prašome pasirinkti valstiją!');
+    state.focus();
+    return;
+  }
+
+  if(!city.value){
+    alert('Prašome pasirinkti miestą!');
+    city.focus();
+    return;
+  }
+
   // Jei cropper aktyvus, naudoti cropped versiją
   if(cropper){
     user.photo = cropper.getCroppedCanvas({width:300,height:300}).toDataURL();
@@ -312,6 +352,9 @@ async function saveProfile(){
     cropper.destroy();
     cropper = null;
   }
+
+  // Išjungti warning apie neišsaugotus duomenis
+  window.profileCompleted = true;
 
   editMode.style.display='none';
   viewMode.style.display='block';
@@ -414,6 +457,15 @@ profile_picture.onchange=e=>{
   };
   r.readAsDataURL(f);
 };
+
+// Neleidžia išeiti iš puslapio jei profilis neužbaigtas
+window.addEventListener('beforeunload', function(e){
+  if(window.profileCompleted === false){
+    e.preventDefault();
+    e.returnValue = 'Profilio duomenys neišsaugoti! Ar tikrai norite išeiti?';
+    return e.returnValue;
+  }
+});
 </script>
 
 </body>

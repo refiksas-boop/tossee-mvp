@@ -515,6 +515,72 @@
       z-index: 10001;
       box-shadow: 0 8px 32px rgba(0, 198, 255, 0.5);
     }
+
+    /* WELCOME POPUP */
+    .welcome-popup {
+      display: none;
+      position: fixed;
+      z-index: 10002;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .welcome-popup-content {
+      background: linear-gradient(135deg, #140D42 0%, #1a0f5c 100%);
+      border: 3px solid #00c6ff;
+      border-radius: 20px;
+      padding: 50px 40px;
+      max-width: 550px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 12px 48px rgba(0, 198, 255, 0.4);
+      animation: popupAppear 0.4s ease-out;
+    }
+
+    @keyframes popupAppear {
+      from { transform: scale(0.8); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .welcome-popup-title {
+      font-size: 32px;
+      font-weight: 900;
+      color: #00c6ff;
+      margin: 0 0 25px 0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .welcome-popup-message {
+      font-size: 18px;
+      color: #fff;
+      margin: 0 0 35px 0;
+      line-height: 1.6;
+    }
+
+    .welcome-popup-btn {
+      background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+      color: white;
+      border: none;
+      padding: 16px 40px;
+      font-size: 18px;
+      font-weight: 700;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .welcome-popup-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 198, 255, 0.5);
+    }
   </style>
 </head>
 
@@ -628,6 +694,18 @@
 <!-- SUCCESS MESSAGE -->
 <div id="reportSuccessMessage" class="report-success-message">
   Thank you for your report.<br>We'll review it shortly.
+</div>
+
+<!-- WELCOME POPUP -->
+<div id="welcomePopup" class="welcome-popup">
+  <div class="welcome-popup-content">
+    <h2 class="welcome-popup-title">🎉 SVEIKINAME! 🎉</h2>
+    <p class="welcome-popup-message">
+      Sveikiname prisijungus prie Tossee chato puslapio!<br><br>
+      Norint naudotis sistema, užbaikite registraciją ir mėgaukitės pokalbiais.
+    </p>
+    <button class="welcome-popup-btn" id="completeProfileBtn">UŽBAIGTI REGISTRACIJĄ</button>
+  </div>
 </div>
 
 <script>
@@ -1424,6 +1502,46 @@ async function checkReportButtonSetting() {
 }
 
 // ================================================================
+// CHECK PROFILE COMPLETION & SHOW WELCOME POPUP
+// ================================================================
+async function checkProfileCompletion() {
+  try {
+    const response = await fetch('/wp-admin/admin-post.php?action=tossee_get_profile', {
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      console.error('[PROFILE CHECK] Error fetching profile');
+      return;
+    }
+
+    const profile = await response.json();
+    console.log('[PROFILE CHECK]', profile);
+
+    // Check if required fields are empty
+    const isIncomplete = !profile.first_name ||
+                        !profile.last_name ||
+                        !profile.gender ||
+                        !profile.country ||
+                        !profile.city;
+
+    if (isIncomplete) {
+      console.log('[PROFILE CHECK] Profile incomplete - showing welcome popup');
+      const welcomePopup = document.getElementById('welcomePopup');
+      welcomePopup.style.display = 'flex';
+
+      // Add button click handler
+      const completeProfileBtn = document.getElementById('completeProfileBtn');
+      completeProfileBtn.addEventListener('click', () => {
+        window.location.href = 'https://tossee.com/my-account';
+      });
+    }
+  } catch (error) {
+    console.error('[PROFILE CHECK] Error:', error);
+  }
+}
+
+// ================================================================
 // AUTO-START ON PAGE LOAD
 // ================================================================
 window.addEventListener("load", () => {
@@ -1435,6 +1553,9 @@ window.addEventListener("load", () => {
 
   // Check report button settings
   checkReportButtonSetting();
+
+  // Check if profile is complete (show welcome popup if not)
+  checkProfileCompletion();
 
   setTimeout(() => {
     startMatching();
