@@ -292,37 +292,37 @@ function enterEdit(){
 async function saveProfile(){
   // VALIDACIJA - privalomi laukai
   if(!first_name.value.trim()){
-    alert('Prašome įvesti vardą!');
+    alert('Please enter your first name!');
     first_name.focus();
     return;
   }
 
   if(!last_name.value.trim()){
-    alert('Prašome įvesti pavardę!');
+    alert('Please enter your last name!');
     last_name.focus();
     return;
   }
 
   if(!gender.value){
-    alert('Prašome pasirinkti lytį!');
+    alert('Please select your gender!');
     gender.focus();
     return;
   }
 
   if(!country.value){
-    alert('Prašome pasirinkti šalį!');
+    alert('Please select your country!');
     country.focus();
     return;
   }
 
   if(stateWrap.style.display==='block' && !state.value){
-    alert('Prašome pasirinkti valstiją!');
+    alert('Please select your state!');
     state.focus();
     return;
   }
 
   if(!city.value){
-    alert('Prašome pasirinkti miestą!');
+    alert('Please select your city!');
     city.focus();
     return;
   }
@@ -462,7 +462,7 @@ profile_picture.onchange=e=>{
 window.addEventListener('beforeunload', function(e){
   if(window.profileCompleted === false){
     e.preventDefault();
-    e.returnValue = 'Profilio duomenys neišsaugoti! Ar tikrai norite išeiti?';
+    e.returnValue = 'Profile data not saved! Are you sure you want to leave?';
     return e.returnValue;
   }
 });
