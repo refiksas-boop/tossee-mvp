@@ -240,9 +240,14 @@ fileInput.addEventListener("change", e => {
       dragMode: "move",
       viewMode: 1,
       background: false,
-      autoCropArea: 1,
+      autoCropArea: 0.65,
+      autoCrop: true,
       movable: true,
-      zoomable: true
+      zoomable: true,
+      zoomOnWheel: true,
+      cropBoxMovable: false,
+      cropBoxResizable: false,
+      toggleDragModeOnDblclick: false
     });
   };
   reader.readAsDataURL(file);
