@@ -32,7 +32,12 @@ function tossee_api_get_profile() {
         session_start();
     }
 
+    // Debug logging
+    error_log('SESSION DATA: ' . print_r($_SESSION, true));
+    error_log('COOKIES: ' . print_r($_COOKIE, true));
+
     if (empty($_SESSION['tossee_id'])) {
+        error_log('NO SESSION - tossee_id not found');
         return new WP_Error('not_logged_in', 'User not logged in', ['status' => 401]);
     }
 
