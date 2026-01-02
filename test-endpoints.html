@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Tossee Endpoint Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #f0fff4;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Tossee Endpoint Diagnostics</h1>
+
+    <div class="test-section">
+        <h2>Test 1: Check Profile Endpoint</h2>
+        <p>This tests if the profile GET endpoint is working.</p>
+        <button onclick="testGetProfile()">Test GET Profile</button>
+        <div id="result1" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Check Update Endpoint</h2>
+        <p>This tests if the profile UPDATE endpoint is accessible.</p>
+        <button onclick="testUpdateProfile()">Test UPDATE Profile</button>
+        <div id="result2" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Check Authentication</h2>
+        <p>This tests if tossee_uid cookie exists.</p>
+        <button onclick="testAuth()">Test Auth Cookie</button>
+        <div id="result3" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Full Profile Check (like chat.html)</h2>
+        <p>This simulates exactly what chat.html does.</p>
+        <button onclick="testChatCheck()">Test Chat Profile Check</button>
+        <div id="result4" class="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        async function testGetProfile() {
+            const resultDiv = document.getElementById('result1');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = 'Testing...';
+
+            try {
+                const response = await fetch('/wp-admin/admin-post.php?action=tossee_get_profile', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                const responseText = await response.text();
+
+                resultDiv.textContent = `Status: ${response.status} ${response.statusText}\n\n`;
+                resultDiv.textContent += `Response:\n${responseText}`;
+
+                if (response.ok) {
+                    try {
+                        const json = JSON.parse(responseText);
+                        resultDiv.className = 'result success';
+                        resultDiv.textContent += '\n\n✅ SUCCESS!\n\nProfile data:\n' + JSON.stringify(json, null, 2);
+                    } catch (e) {
+                        resultDiv.className = 'result error';
+                        resultDiv.textContent += '\n\n❌ Response is not valid JSON';
+                    }
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent += '\n\n❌ FAILED - Endpoint returned error';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ ERROR:\n' + error.message;
+            }
+        }
+
+        async function testUpdateProfile() {
+            const resultDiv = document.getElementById('result2');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = 'Testing...';
+
+            try {
+                const testData = {
+                    first_name: 'Test',
+                    last_name: 'User'
+                };
+
+                const response = await fetch('/wp-admin/admin-post.php?action=tossee_update_profile', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+
+                const responseText = await response.text();
+
+                resultDiv.textContent = `Status: ${response.status} ${response.statusText}\n\n`;
+                resultDiv.textContent += `Response:\n${responseText}`;
+
+                if (response.ok) {
+                    try {
+                        const json = JSON.parse(responseText);
+                        resultDiv.className = 'result success';
+                        resultDiv.textContent += '\n\n✅ SUCCESS!\n\nUpdate response:\n' + JSON.stringify(json, null, 2);
+                    } catch (e) {
+                        resultDiv.className = 'result error';
+                        resultDiv.textContent += '\n\n❌ Response is not valid JSON';
+                    }
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent += '\n\n❌ FAILED - Endpoint returned error';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ ERROR:\n' + error.message;
+            }
+        }
+
+        function testAuth() {
+            const resultDiv = document.getElementById('result3');
+            resultDiv.style.display = 'block';
+
+            const cookies = document.cookie.split(';').map(c => c.trim());
+            const tosseeCookie = cookies.find(c => c.startsWith('tossee_uid='));
+
+            if (tosseeCookie) {
+                resultDiv.className = 'result success';
+                resultDiv.textContent = '✅ SUCCESS!\n\nFound tossee_uid cookie:\n' + tosseeCookie;
+            } else {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ FAILED!\n\nNo tossee_uid cookie found.\n\nAll cookies:\n' + cookies.join('\n');
+            }
+        }
+
+        async function testChatCheck() {
+            const resultDiv = document.getElementById('result4');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = 'Running full profile check...\n\n';
+
+            try {
+                // Exact same code as chat.html
+                const response = await fetch('/wp-admin/admin-post.php?action=tossee_get_profile', {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent += `❌ FAILED - Response not OK\nStatus: ${response.status}\n`;
+                    return;
+                }
+
+                const profile = await response.json();
+                resultDiv.textContent += 'Profile data received:\n' + JSON.stringify(profile, null, 2) + '\n\n';
+
+                // Check completeness
+                const isIncomplete = !profile.first_name ||
+                                    !profile.last_name ||
+                                    !profile.gender ||
+                                    !profile.country ||
+                                    !profile.city;
+
+                if (isIncomplete) {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent += '❌ Profile INCOMPLETE\n\n';
+                    resultDiv.textContent += 'Missing fields:\n';
+                    if (!profile.first_name) resultDiv.textContent += '- first_name\n';
+                    if (!profile.last_name) resultDiv.textContent += '- last_name\n';
+                    if (!profile.gender) resultDiv.textContent += '- gender\n';
+                    if (!profile.country) resultDiv.textContent += '- country\n';
+                    if (!profile.city) resultDiv.textContent += '- city\n';
+                    resultDiv.textContent += '\n🚫 Chat should be BLOCKED and popup should show!';
+                } else {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent += '✅ Profile COMPLETE\n\n';
+                    resultDiv.textContent += '✅ Chat should be ALLOWED!';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent += '❌ ERROR:\n' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
