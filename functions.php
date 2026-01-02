@@ -229,3 +229,10 @@ add_action('template_redirect', function () {
 // Paslepia WP admin barą visiems vartotojams frontend'e
 add_filter('show_admin_bar', '__return_false');
 
+/* ================================
+   TOSSEE CUSTOM FILES
+================================ */
+require_once ASTRA_THEME_DIR . 'database-setup.php';
+require_once ASTRA_THEME_DIR . 'register-form.php';
+require_once ASTRA_THEME_DIR . 'register-handler.php';
+require_once ASTRA_THEME_DIR . 'tossee-api.php';
