@@ -525,9 +525,10 @@
       top: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.9);
+      background: rgba(0, 0, 0, 0.95);
       justify-content: center;
       align-items: center;
+      pointer-events: auto;
     }
 
     .welcome-popup-content {
@@ -1512,7 +1513,7 @@ async function checkProfileCompletion() {
 
     if (!response.ok) {
       console.error('[PROFILE CHECK] Error fetching profile');
-      return;
+      return false;
     }
 
     const profile = await response.json();
@@ -1526,27 +1527,36 @@ async function checkProfileCompletion() {
                         !profile.city;
 
     if (isIncomplete) {
-      console.log('[PROFILE CHECK] Profile incomplete - showing welcome popup');
+      console.log('[PROFILE CHECK] Profile incomplete - showing welcome popup and blocking chat');
       const welcomePopup = document.getElementById('welcomePopup');
       welcomePopup.style.display = 'flex';
+
+      // BLOCK all chat functionality - hide everything
+      document.querySelector('.video-wrapper').style.display = 'none';
+      document.getElementById('chatArea').style.display = 'none';
+      document.getElementById('menuToggle').style.display = 'none';
 
       // Add button click handler
       const completeProfileBtn = document.getElementById('completeProfileBtn');
       completeProfileBtn.addEventListener('click', () => {
         window.location.href = 'https://tossee.com/profile/';
       });
+
+      return false; // Profile incomplete
     }
+
+    return true; // Profile complete
   } catch (error) {
     console.error('[PROFILE CHECK] Error:', error);
+    return false;
   }
 }
 
 // ================================================================
 // AUTO-START ON PAGE LOAD
 // ================================================================
-window.addEventListener("load", () => {
-  console.log("[INIT] Starting matching...");
-  showStatus("Starting...");
+window.addEventListener("load", async () => {
+  console.log("[INIT] Checking profile completion...");
 
   // Hide report button initially (will show when connected)
   reportBtn.style.display = 'none';
@@ -1555,11 +1565,19 @@ window.addEventListener("load", () => {
   checkReportButtonSetting();
 
   // Check if profile is complete (show welcome popup if not)
-  checkProfileCompletion();
+  const isProfileComplete = await checkProfileCompletion();
 
-  setTimeout(() => {
-    startMatching();
-  }, 1000);
+  // ONLY start matching if profile is complete
+  if (isProfileComplete) {
+    console.log("[INIT] Profile complete - starting matching...");
+    showStatus("Starting...");
+    setTimeout(() => {
+      startMatching();
+    }, 1000);
+  } else {
+    console.log("[INIT] Profile incomplete - blocking chat functionality");
+    // Do NOT start matching - user must complete profile first
+  }
 });
 
 </script>
