@@ -27,7 +27,10 @@ add_action('rest_api_init', function() {
 
 /* --- Get Profile Endpoint --- */
 function tossee_api_get_profile() {
-    if (!session_id()) session_start();
+    // Ensure session is started
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
 
     if (empty($_SESSION['tossee_id'])) {
         return new WP_Error('not_logged_in', 'User not logged in', ['status' => 401]);
@@ -57,7 +60,10 @@ function tossee_api_get_profile() {
 
 /* --- Change Password Endpoint --- */
 function tossee_api_change_password($request) {
-    if (!session_id()) session_start();
+    // Ensure session is started
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
 
     if (empty($_SESSION['tossee_id'])) {
         return new WP_Error('not_logged_in', 'User not logged in', ['status' => 401]);
@@ -112,7 +118,10 @@ function tossee_api_change_password($request) {
 
 /* --- Get Photo Endpoint --- */
 function tossee_api_get_photo() {
-    if (!session_id()) session_start();
+    // Ensure session is started
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
 
     if (empty($_SESSION['tossee_id'])) {
         return new WP_Error('not_logged_in', 'User not logged in', ['status' => 401]);
