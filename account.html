@@ -179,25 +179,24 @@
     let CURRENT_USER_ID = null;
 
     // Load profile and display username
-    fetch("/wp-json/tossee/v1/profile", {
-      credentials: "include"
-    })
-    .then(r => {
-      if (!r.ok) {
-        console.error('Not logged in or session expired');
-        return null;
+    async function loadProfile() {
+      try {
+        const response = await fetch("/wp-json/tossee/v1/profile", {
+          credentials: "include"
+        });
+
+        const user = await response.json();
+
+        if (user && user.username) {
+          CURRENT_USER_ID = user.id;
+          document.getElementById("username").textContent = user.username || "User";
+        }
+      } catch (err) {
+        console.error('Failed to load profile:', err);
       }
-      return r.json();
-    })
-    .then(user => {
-      if (user) {
-        CURRENT_USER_ID = user.id;
-        document.getElementById("username").textContent = user.username || "User";
-      }
-    })
-    .catch(err => {
-      console.error('Failed to load profile:', err);
-    });
+    }
+
+    loadProfile();
 
     // Open password modal
     const modal = document.getElementById("passwordModal");
