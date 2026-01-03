@@ -237,3 +237,4 @@ require_once ASTRA_THEME_DIR . 'register-form.php';
 require_once ASTRA_THEME_DIR . 'register-handler.php';
 require_once ASTRA_THEME_DIR . 'tossee-api.php';
 require_once ASTRA_THEME_DIR . 'account-shortcode.php';
+require_once ASTRA_THEME_DIR . 'registration-photo-handler.php';
