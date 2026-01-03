@@ -314,3 +314,9 @@ function tossee_account_shortcode() {
 }
 
 add_shortcode('tossee_account', 'tossee_account_shortcode');
+
+// TEST shortcode
+function tossee_test_shortcode() {
+    return '<h1 style="color: red;">🎯 SHORTCODE WORKS!</h1>';
+}
+add_shortcode('tossee_test', 'tossee_test_shortcode');
