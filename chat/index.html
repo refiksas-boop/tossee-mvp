@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tossee - Random Video Chat</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #140D42;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    /* HEADER / MENU */
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: #00c6ff;
+    }
+
+    .menu {
+      display: flex;
+      gap: 20px;
+    }
+
+    .menu a {
+      color: #fff;
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      transition: background 0.3s;
+    }
+
+    .menu a:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* VIDEO CONTAINER */
+    .video-container {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      right: 300px;
+      bottom: 0;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #localVideo, #remoteVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .video-placeholder {
+      text-align: center;
+      color: #666;
+    }
+
+    /* CHAT SIDEBAR */
+    .chat-sidebar {
+      position: fixed;
+      top: 60px;
+      right: 0;
+      width: 300px;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+    }
+
+    .chat-input-container {
+      padding: 15px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .chat-input {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    /* CONTROLS */
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 15px;
+      z-index: 50;
+    }
+
+    .controls button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .controls button:hover {
+      transform: scale(1.05);
+    }
+
+    .btn-next {
+      background: linear-gradient(45deg, #a64dff, #00c6ff);
+      color: #fff;
+    }
+
+    .btn-stop {
+      background: #ff4444;
+      color: #fff;
+    }
+
+    /* WELCOME POPUP - BLOCKING OVERLAY */
+    .welcome-popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .welcome-popup-overlay.active {
+      display: flex;
+    }
+
+    .welcome-popup {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      max-width: 500px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      animation: popupBounce 0.5s ease-out;
+    }
+
+    @keyframes popupBounce {
+      0% {
+        transform: scale(0.8);
+        opacity: 0;
+      }
+      50% {
+        transform: scale(1.05);
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .welcome-popup h1 {
+      font-size: 32px;
+      margin-bottom: 20px;
+      color: #fff;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .welcome-popup p {
+      font-size: 18px;
+      margin-bottom: 30px;
+      color: rgba(255, 255, 255, 0.9);
+      line-height: 1.6;
+    }
+
+    .welcome-popup .btn-complete {
+      padding: 15px 40px;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      border-radius: 50px;
+      background: #fff;
+      color: #667eea;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .welcome-popup .btn-complete:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    /* LOADING INDICATOR */
+    .loading {
+      position: fixed;
+      top: 70px;
+      right: 10px;
+      background: rgba(0, 198, 255, 0.9);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 1000;
+      display: none;
+    }
+
+    .loading.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOADING INDICATOR -->
+  <div class="loading" id="loadingIndicator">
+    Checking profile...
+  </div>
+
+  <!-- WELCOME POPUP (BLOCKING) -->
+  <div class="welcome-popup-overlay" id="welcomePopupOverlay">
+    <div class="welcome-popup">
+      <h1>🎉 WELCOME TO TOSSEE! 🎉</h1>
+      <p><strong>Your profile is incomplete!</strong></p>
+      <p>To start chatting with random people, please complete your registration first. We need your gender, country, and city.</p>
+      <button class="btn-complete" onclick="goToCompleteProfile()">
+        Complete Profile Now
+      </button>
+    </div>
+  </div>
+
+  <!-- HEADER / MENU -->
+  <div class="header" id="mainHeader">
+    <div class="logo">TOSSEE</div>
+    <div class="menu" id="mainMenu">
+      <a href="/profile.html">My Profile</a>
+      <a href="/edit-profile.html">Edit Profile</a>
+      <a href="/?tossee_logout=1">Logout</a>
+    </div>
+  </div>
+
+  <!-- VIDEO CONTAINER -->
+  <div class="video-container" id="videoContainer">
+    <div class="video-placeholder">
+      <h2>Random Video Chat</h2>
+      <p>Click "Next" to connect with someone</p>
+    </div>
+    <!-- <video id="localVideo" autoplay muted></video> -->
+    <!-- <video id="remoteVideo" autoplay></video> -->
+  </div>
+
+  <!-- CHAT SIDEBAR -->
+  <div class="chat-sidebar" id="chatSidebar">
+    <div class="chat-messages" id="chatMessages">
+      <p style="color: #666;">No messages yet. Start chatting!</p>
+    </div>
+    <div class="chat-input-container">
+      <input type="text" class="chat-input" id="chatInput" placeholder="Type a message..." disabled>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls" id="videoControls">
+    <button class="btn-next" id="btnNext" disabled>Next</button>
+    <button class="btn-stop" id="btnStop" disabled>Stop</button>
+  </div>
+
+  <script>
+    console.log('%c[TOSSEE CHAT] Page loaded - Starting profile check...', 'background: #00c6ff; color: #fff; padding: 5px 10px; border-radius: 3px;');
+
+    // GLOBAL STATE
+    let profileComplete = false;
+    let profileData = null;
+
+    /**
+     * CHECK PROFILE COMPLETION
+     * Checks if user has completed their profile (gender, country, city required)
+     */
+    async function checkProfileCompletion() {
+      console.log('%c[PROFILE CHECK] Starting profile completion check...', 'color: #00c6ff; font-weight: bold;');
+
+      // Show loading indicator
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      loadingIndicator.classList.add('active');
+      console.log('[PROFILE CHECK] Loading indicator shown');
+
+      try {
+        console.log('[PROFILE CHECK] Fetching profile data from: /wp-admin/admin-post.php?action=tossee_get_profile');
+
+        const response = await fetch('/wp-admin/admin-post.php?action=tossee_get_profile', {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        console.log('[PROFILE CHECK] Response status:', response.status);
+        console.log('[PROFILE CHECK] Response headers:', Object.fromEntries(response.headers.entries()));
+
+        if (!response.ok) {
+          console.error('[PROFILE CHECK] ❌ Response not OK:', response.status, response.statusText);
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('%c[PROFILE CHECK] ✅ Profile data received:', 'color: #4CAF50; font-weight: bold;', data);
+
+        profileData = data;
+
+        // Check required fields
+        const hasGender = data.gender && data.gender !== '' && data.gender !== '-';
+        const hasCountry = data.country && data.country !== '' && data.country !== '-';
+        const hasCity = data.city && data.city !== '' && data.city !== '-';
+
+        console.log('[PROFILE CHECK] Field validation:');
+        console.log('  - Gender:', data.gender, '→', hasGender ? '✅ OK' : '❌ MISSING');
+        console.log('  - Country:', data.country, '→', hasCountry ? '✅ OK' : '❌ MISSING');
+        console.log('  - City:', data.city, '→', hasCity ? '✅ OK' : '❌ MISSING');
+
+        profileComplete = hasGender && hasCountry && hasCity;
+
+        console.log('%c[PROFILE CHECK] Profile Complete:', 'font-weight: bold; font-size: 14px;', profileComplete ? '✅ YES' : '❌ NO');
+
+        if (profileComplete) {
+          console.log('%c[PROFILE CHECK] Profile is complete! Enabling chat features...', 'color: #4CAF50; font-weight: bold;');
+          enableChatFeatures();
+        } else {
+          console.log('%c[PROFILE CHECK] Profile is INCOMPLETE! Showing welcome popup and blocking features...', 'color: #ff9800; font-weight: bold;');
+          showWelcomePopup();
+          blockChatFeatures();
+        }
+
+      } catch (error) {
+        console.error('%c[PROFILE CHECK] ❌ ERROR:', 'color: #f44336; font-weight: bold;', error);
+        console.error('[PROFILE CHECK] Error details:', {
+          message: error.message,
+          stack: error.stack
+        });
+
+        // On error, assume profile is incomplete and show popup
+        console.log('[PROFILE CHECK] Due to error, assuming profile is incomplete');
+        profileComplete = false;
+        showWelcomePopup();
+        blockChatFeatures();
+      } finally {
+        // Hide loading indicator
+        loadingIndicator.classList.remove('active');
+        console.log('[PROFILE CHECK] Loading indicator hidden');
+        console.log('%c[PROFILE CHECK] Check complete!', 'background: #00c6ff; color: #fff; padding: 5px 10px; border-radius: 3px;');
+      }
+    }
+
+    /**
+     * SHOW WELCOME POPUP
+     * Displays the blocking popup overlay
+     */
+    function showWelcomePopup() {
+      console.log('%c[POPUP] Showing welcome popup...', 'color: #ff9800; font-weight: bold;');
+      const overlay = document.getElementById('welcomePopupOverlay');
+      overlay.classList.add('active');
+      console.log('[POPUP] Popup overlay is now visible and blocking all content');
+    }
+
+    /**
+     * HIDE WELCOME POPUP
+     * Hides the blocking popup overlay (not used in current flow, but available)
+     */
+    function hideWelcomePopup() {
+      console.log('[POPUP] Hiding welcome popup...');
+      const overlay = document.getElementById('welcomePopupOverlay');
+      overlay.classList.remove('active');
+      console.log('[POPUP] Popup overlay hidden');
+    }
+
+    /**
+     * BLOCK CHAT FEATURES
+     * Disables video, chat, and menu when profile is incomplete
+     */
+    function blockChatFeatures() {
+      console.log('%c[BLOCKING] Blocking chat features...', 'color: #f44336; font-weight: bold;');
+
+      // Disable video controls
+      document.getElementById('btnNext').disabled = true;
+      document.getElementById('btnStop').disabled = true;
+      console.log('[BLOCKING] ❌ Video controls disabled');
+
+      // Disable chat input
+      document.getElementById('chatInput').disabled = true;
+      console.log('[BLOCKING] ❌ Chat input disabled');
+
+      // Add visual indicator to blocked elements
+      document.getElementById('videoContainer').style.opacity = '0.3';
+      document.getElementById('chatSidebar').style.opacity = '0.3';
+      document.getElementById('videoControls').style.opacity = '0.3';
+      console.log('[BLOCKING] ❌ Visual opacity reduced on blocked elements');
+
+      console.log('%c[BLOCKING] All features blocked!', 'color: #f44336; font-weight: bold;');
+    }
+
+    /**
+     * ENABLE CHAT FEATURES
+     * Enables video, chat, and menu when profile is complete
+     */
+    function enableChatFeatures() {
+      console.log('%c[ENABLING] Enabling chat features...', 'color: #4CAF50; font-weight: bold;');
+
+      // Enable video controls
+      document.getElementById('btnNext').disabled = false;
+      document.getElementById('btnStop').disabled = false;
+      console.log('[ENABLING] ✅ Video controls enabled');
+
+      // Enable chat input
+      document.getElementById('chatInput').disabled = false;
+      console.log('[ENABLING] ✅ Chat input enabled');
+
+      // Remove visual blocking
+      document.getElementById('videoContainer').style.opacity = '1';
+      document.getElementById('chatSidebar').style.opacity = '1';
+      document.getElementById('videoControls').style.opacity = '1';
+      console.log('[ENABLING] ✅ Visual opacity restored');
+
+      console.log('%c[ENABLING] All features enabled!', 'color: #4CAF50; font-weight: bold;');
+    }
+
+    /**
+     * GO TO COMPLETE PROFILE
+     * Redirects user to edit profile page
+     */
+    function goToCompleteProfile() {
+      console.log('%c[REDIRECT] User clicked "Complete Profile" button', 'color: #2196F3; font-weight: bold;');
+      console.log('[REDIRECT] Redirecting to: /edit-profile.html');
+      window.location.href = '/edit-profile.html';
+    }
+
+    /**
+     * INITIALIZE ON PAGE LOAD
+     */
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('%c[INIT] DOM Content Loaded', 'background: #4CAF50; color: #fff; padding: 5px 10px; border-radius: 3px;');
+      console.log('[INIT] Starting profile check in 500ms...');
+
+      // Small delay to ensure everything is loaded
+      setTimeout(() => {
+        checkProfileCompletion();
+      }, 500);
+    });
+
+    // Also run on load as backup
+    window.addEventListener('load', () => {
+      console.log('[INIT] Window fully loaded');
+    });
+
+    /**
+     * BUTTON EVENT HANDLERS (for future implementation)
+     */
+    document.getElementById('btnNext').addEventListener('click', () => {
+      console.log('[VIDEO] Next button clicked - connecting to next person...');
+      // TODO: Implement WebRTC connection logic
+    });
+
+    document.getElementById('btnStop').addEventListener('click', () => {
+      console.log('[VIDEO] Stop button clicked - disconnecting...');
+      // TODO: Implement disconnect logic
+    });
+
+    document.getElementById('chatInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && e.target.value.trim() !== '') {
+        console.log('[CHAT] Message sent:', e.target.value);
+        // TODO: Implement chat message sending
+        e.target.value = '';
+      }
+    });
+
+    console.log('%c[TOSSEE CHAT] All scripts loaded successfully!', 'background: #4CAF50; color: #fff; padding: 5px 10px; border-radius: 3px;');
+  </script>
+
+</body>
+</html>
