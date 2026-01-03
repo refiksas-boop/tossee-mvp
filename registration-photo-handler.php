@@ -9,18 +9,23 @@ add_action('admin_post_tossee_get_registration_photo', 'tossee_get_registration_
 function tossee_get_registration_photo_handler() {
     header('Content-Type: application/json; charset=utf-8');
 
-    // 1. Auth
-    $tossee_id = tossee_get_current_user_id();
+    // 1. Start session
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
 
-    if (!$tossee_id) {
+    // 2. Check auth
+    if (empty($_SESSION['tossee_id'])) {
         echo json_encode(['error' => 'no_auth']);
         exit;
     }
 
+    $tossee_id = $_SESSION['tossee_id'];
+
     global $wpdb;
     $table = $wpdb->prefix . 'tossee_users';
 
-    // 2. Get registration photo (NOT profile_photo)
+    // 3. Get registration photo (NOT profile_photo)
     $photo = $wpdb->get_var(
         $wpdb->prepare(
             "SELECT photo FROM $table WHERE tossee_id = %s LIMIT 1",
@@ -33,7 +38,7 @@ function tossee_get_registration_photo_handler() {
         exit;
     }
 
-    // 3. Return photo
+    // 4. Return photo
     echo json_encode(['photo' => $photo]);
     exit;
 }
