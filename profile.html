@@ -155,10 +155,19 @@ document.getElementById("about").textContent =
   user.meta?.about || profile.about || "-";
 
 
-  
+
     const fullName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
     document.getElementById("profile-title").textContent =
       fullName ? "Profile of " + fullName : "My Profile";
+
+    // PHOTO - Load from profile or fallback to default
+    const avatar = document.getElementById("avatar");
+    if (profile.photo && profile.photo.trim() !== "") {
+      avatar.src = profile.photo;
+    } else if (user.avatar_urls && user.avatar_urls[96]) {
+      avatar.src = user.avatar_urls[96];
+    }
+    // If neither exists, keep the default placeholder
 
   } catch (err) {
     console.error("Profile load error:", err);
