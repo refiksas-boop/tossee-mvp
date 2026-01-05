@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Account – Tossee</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #140D42;
+      color: #fff;
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .logo {
+      width: 280px;
+      max-width: 90%;
+      margin: 0 auto 30px;
+      display: block;
+    }
+
+    .welcome {
+      font-size: 32px;
+      font-weight: 800;
+      margin-bottom: 40px;
+      background: linear-gradient(45deg,#a64dff,#00c6ff,#0072ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .menu {
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    .menu-btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      margin: 12px 0;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff;
+      background: linear-gradient(45deg,#a64dff,#00c6ff,#0072ff);
+      cursor: pointer;
+      text-decoration: none;
+      transition: 0.2s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .menu-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.85);
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+    }
+
+    .modal-content h2 {
+      color: #140D42;
+      margin-bottom: 20px;
+    }
+
+    .modal-content img {
+      max-width: 100%;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      font-size: 28px;
+      font-weight: bold;
+      color: #140D42;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+
+    .close-modal:hover {
+      color: #a64dff;
+    }
+
+    .error-msg {
+      color: #ff4444;
+      padding: 15px;
+      background: rgba(255,68,68,0.1);
+      border-radius: 8px;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <img src="https://tossee.com/wp-content/uploads/2025/09/logo.png" alt="Tossee Logo" class="logo">
+
+  <div class="welcome" id="welcomeText">Welcome 👋</div>
+
+  <div class="menu">
+    <a href="/profile.html" class="menu-btn">View Profile</a>
+    <a href="/edit-profile.html" class="menu-btn">Edit Profile</a>
+    <button id="showPhotoBtn" class="menu-btn">Registration Photo</button>
+    <button id="changePasswordBtn" class="menu-btn">Change Password</button>
+    <a href="/?tossee_logout=1" class="menu-btn" style="background: linear-gradient(45deg,#ff4444,#ff6666);">Logout</a>
+  </div>
+
+  <!-- Photo Modal -->
+  <div id="photoModal" class="modal">
+    <div class="modal-content">
+      <button class="close-modal" id="closeModal">&times;</button>
+      <h2>Registration Photo</h2>
+      <div id="photoContainer">
+        <img id="photoImage" src="" alt="Loading...">
+      </div>
+      <div id="photoError" class="error-msg" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+    // Load user data and show welcome message
+    async function loadUserData() {
+      try {
+        const res = await fetch('/wp-json/tossee/v1/profile', {
+          credentials: 'include'
+        });
+        const user = await res.json();
+
+        if (user && user.tossee_id) {
+          const username = user.username || user.tossee_id;
+          document.getElementById('welcomeText').innerHTML = `Welcome, ${username} 👋`;
+        }
+      } catch (err) {
+        console.error('Failed to load user data:', err);
+      }
+    }
+
+    // Show registration photo modal
+    document.getElementById('showPhotoBtn').addEventListener('click', async () => {
+      const modal = document.getElementById('photoModal');
+      const photoImg = document.getElementById('photoImage');
+      const photoError = document.getElementById('photoError');
+
+      modal.style.display = 'flex';
+      photoImg.style.display = 'none';
+      photoError.style.display = 'none';
+      photoImg.src = '';
+
+      try {
+        // Fetch photo from our endpoint
+        const response = await fetch('/tossee-get-photo.php', {
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          throw new Error('Photo not found');
+        }
+
+        // Check if response is an image
+        const contentType = response.headers.get('content-type');
+
+        if (contentType && contentType.startsWith('image/')) {
+          // Create blob URL for image
+          const blob = await response.blob();
+          const imageUrl = URL.createObjectURL(blob);
+          photoImg.src = imageUrl;
+          photoImg.style.display = 'block';
+        } else {
+          // Try to parse as JSON (error response)
+          const data = await response.json();
+          throw new Error(data.message || 'Failed to load photo');
+        }
+      } catch (err) {
+        photoError.textContent = err.message || 'Photo unavailable';
+        photoError.style.display = 'block';
+      }
+    });
+
+    // Close modal
+    document.getElementById('closeModal').addEventListener('click', () => {
+      document.getElementById('photoModal').style.display = 'none';
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('photoModal').addEventListener('click', (e) => {
+      if (e.target.id === 'photoModal') {
+        document.getElementById('photoModal').style.display = 'none';
+      }
+    });
+
+    // Change password (placeholder)
+    document.getElementById('changePasswordBtn').addEventListener('click', () => {
+      alert('Password change feature coming soon!');
+    });
+
+    // Load user data on page load
+    loadUserData();
+  </script>
+
+</body>
+</html>
