@@ -1462,9 +1462,9 @@ async function checkProfileCompletion() {
   console.log('%c[PROFILE CHECK] Starting profile completion check...', 'color: #00c6ff; font-weight: bold; font-size: 14px;');
 
   try {
-    console.log('[PROFILE CHECK] Fetching profile from: /wp-admin/admin-post.php?action=tossee_get_profile');
+    console.log('[PROFILE CHECK] Fetching profile from: https://tossee.com/wp-admin/admin-post.php?action=tossee_get_profile');
 
-    const response = await fetch('/wp-admin/admin-post.php?action=tossee_get_profile', {
+    const response = await fetch('https://tossee.com/wp-admin/admin-post.php?action=tossee_get_profile', {
       credentials: 'include'
     });
 
