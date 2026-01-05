@@ -229,3 +229,88 @@ add_action('template_redirect', function () {
 // Paslepia WP admin barą visiems vartotojams frontend'e
 add_filter('show_admin_bar', '__return_false');
 
+// ================================================================
+// TOSSEE PROFILE API ENDPOINTS
+// ================================================================
+
+// GET PROFILE
+add_action('admin_post_tossee_get_profile', 'tossee_get_profile_handler');
+add_action('admin_post_nopriv_tossee_get_profile', 'tossee_get_profile_handler');
+
+function tossee_get_profile_handler() {
+    header('Content-Type: application/json');
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Credentials: true');
+
+    if (!is_user_logged_in()) {
+        wp_send_json_error(['message' => 'Not logged in'], 401);
+        exit;
+    }
+
+    $user_id = get_current_user_id();
+    $user = get_userdata($user_id);
+
+    $profile = [
+        'user_id' => $user_id,
+        'username' => $user->user_login,
+        'email' => $user->user_email,
+        'first_name' => get_user_meta($user_id, 'first_name', true) ?: '-',
+        'last_name' => get_user_meta($user_id, 'last_name', true) ?: '-',
+        'gender' => get_user_meta($user_id, 'gender', true) ?: '-',
+        'country' => get_user_meta($user_id, 'country', true) ?: '-',
+        'city' => get_user_meta($user_id, 'city', true) ?: '-',
+        'birth_date' => get_user_meta($user_id, 'birth_date', true) ?: '-',
+        'about' => get_user_meta($user_id, 'description', true) ?: '-',
+        'profile_image' => get_user_meta($user_id, 'profile_image', true) ?: ''
+    ];
+
+    wp_send_json($profile);
+    exit;
+}
+
+// UPDATE PROFILE
+add_action('admin_post_tossee_update_profile', 'tossee_update_profile_handler');
+add_action('admin_post_nopriv_tossee_update_profile', 'tossee_update_profile_handler');
+
+function tossee_update_profile_handler() {
+    header('Content-Type: application/json');
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Credentials: true');
+
+    if (!is_user_logged_in()) {
+        wp_send_json_error(['message' => 'Not logged in'], 401);
+        exit;
+    }
+
+    $user_id = get_current_user_id();
+    $data = json_decode(file_get_contents('php://input'), true);
+
+    if (isset($data['first_name'])) {
+        update_user_meta($user_id, 'first_name', sanitize_text_field($data['first_name']));
+    }
+    if (isset($data['last_name'])) {
+        update_user_meta($user_id, 'last_name', sanitize_text_field($data['last_name']));
+    }
+    if (isset($data['gender'])) {
+        update_user_meta($user_id, 'gender', sanitize_text_field($data['gender']));
+    }
+    if (isset($data['country'])) {
+        update_user_meta($user_id, 'country', sanitize_text_field($data['country']));
+    }
+    if (isset($data['city'])) {
+        update_user_meta($user_id, 'city', sanitize_text_field($data['city']));
+    }
+    if (isset($data['birth_date'])) {
+        update_user_meta($user_id, 'birth_date', sanitize_text_field($data['birth_date']));
+    }
+    if (isset($data['about'])) {
+        update_user_meta($user_id, 'description', sanitize_textarea_field($data['about']));
+    }
+    if (isset($data['profile_image'])) {
+        update_user_meta($user_id, 'profile_image', esc_url_raw($data['profile_image']));
+    }
+
+    wp_send_json_success(['message' => 'Profile updated successfully']);
+    exit;
+}
+
