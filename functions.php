@@ -236,6 +236,13 @@ add_action('rest_api_init', function () {
         'callback' => 'tossee_get_registration_photo',
         'permission_callback' => '__return_true'
     ));
+
+    // Debug endpoint - sesijos patikrinimui
+    register_rest_route('tossee/v1', '/debug-session', array(
+        'methods' => 'GET',
+        'callback' => 'tossee_debug_session',
+        'permission_callback' => '__return_true'
+    ));
 });
 
 function tossee_get_registration_photo($request) {
@@ -274,6 +281,18 @@ function tossee_get_registration_photo($request) {
     return array(
         'success' => true,
         'photo' => $photo
+    );
+}
+
+function tossee_debug_session($request) {
+    if (!session_id()) {
+        session_start();
+    }
+
+    return array(
+        'session_id' => session_id(),
+        'tossee_id' => isset($_SESSION['tossee_id']) ? $_SESSION['tossee_id'] : null,
+        'session_data' => $_SESSION
     );
 }
 
