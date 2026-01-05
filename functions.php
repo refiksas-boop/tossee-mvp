@@ -296,3 +296,184 @@ function tossee_debug_session($request) {
     );
 }
 
+// My Account shortcode
+add_shortcode('tossee_my_account', 'tossee_my_account_shortcode');
+
+function tossee_my_account_shortcode() {
+    ob_start();
+    ?>
+    <style>
+        .tossee-my-account {
+            max-width: 420px;
+            margin: 40px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .tossee-welcome {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 40px;
+            background: linear-gradient(45deg,#a64dff,#00c6ff,#0072ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .tossee-menu-btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            margin: 12px 0;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(45deg,#a64dff,#00c6ff,#0072ff);
+            cursor: pointer;
+            text-decoration: none;
+            transition: 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .tossee-menu-btn:hover {
+            transform: translateY(-2px);
+            opacity: 0.95;
+        }
+        .tossee-photo-modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .tossee-modal-content {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            position: relative;
+        }
+        .tossee-modal-content h2 {
+            color: #140D42;
+            margin-bottom: 20px;
+        }
+        .tossee-modal-content img {
+            max-width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .tossee-close-modal {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #140D42;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+        .tossee-error-msg {
+            color: #ff4444;
+            padding: 15px;
+            background: rgba(255,68,68,0.1);
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+    </style>
+
+    <div class="tossee-my-account">
+        <div class="tossee-welcome" id="tosseeWelcome">Welcome 👋</div>
+
+        <div class="tossee-menu">
+            <a href="/profile.html" class="tossee-menu-btn">View Profile</a>
+            <a href="/edit-profile.html" class="tossee-menu-btn">Edit Profile</a>
+            <button id="tosseeShowPhoto" class="tossee-menu-btn">Registration Photo</button>
+            <button id="tosseeChangePass" class="tossee-menu-btn">Change Password</button>
+        </div>
+    </div>
+
+    <div id="tosseePhotoModal" class="tossee-photo-modal">
+        <div class="tossee-modal-content">
+            <button class="tossee-close-modal" id="tosseeCloseModal">&times;</button>
+            <h2>Registration Photo</h2>
+            <div id="tosseePhotoContainer">
+                <img id="tosseePhotoImage" src="" alt="Loading..." style="display:none;">
+            </div>
+            <div id="tosseePhotoError" class="tossee-error-msg" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        // Load user data
+        fetch('/wp-json/tossee/v1/profile', { credentials: 'include' })
+            .then(r => r.json())
+            .then(user => {
+                if (user && user.username) {
+                    document.getElementById('tosseeWelcome').innerHTML = 'Welcome, ' + user.username + ' 👋';
+                }
+            })
+            .catch(err => console.error('Failed to load user:', err));
+
+        // Show photo modal
+        document.getElementById('tosseeShowPhoto').addEventListener('click', async function() {
+            const modal = document.getElementById('tosseePhotoModal');
+            const img = document.getElementById('tosseePhotoImage');
+            const error = document.getElementById('tosseePhotoError');
+
+            modal.style.display = 'flex';
+            img.style.display = 'none';
+            error.style.display = 'none';
+
+            try {
+                const response = await fetch('/tossee-get-photo.php', { credentials: 'include' });
+
+                if (!response.ok) {
+                    throw new Error('Photo not found');
+                }
+
+                const contentType = response.headers.get('content-type');
+
+                if (contentType && contentType.startsWith('image/')) {
+                    const blob = await response.blob();
+                    img.src = URL.createObjectURL(blob);
+                    img.style.display = 'block';
+                } else {
+                    const data = await response.json();
+                    throw new Error(data.message || 'Failed to load photo');
+                }
+            } catch (err) {
+                error.textContent = err.message || 'Photo unavailable';
+                error.style.display = 'block';
+            }
+        });
+
+        // Close modal
+        document.getElementById('tosseeCloseModal').addEventListener('click', function() {
+            document.getElementById('tosseePhotoModal').style.display = 'none';
+        });
+
+        document.getElementById('tosseePhotoModal').addEventListener('click', function(e) {
+            if (e.target.id === 'tosseePhotoModal') {
+                this.style.display = 'none';
+            }
+        });
+
+        // Change password
+        document.getElementById('tosseeChangePass').addEventListener('click', function() {
+            alert('Password change feature coming soon!');
+        });
+    })();
+    </script>
+    <?php
+    return ob_get_clean();
+}
+
