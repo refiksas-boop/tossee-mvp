@@ -26,13 +26,10 @@ if (!$wp_loaded) {
     die('WordPress not found');
 }
 
-// Startuojame sesiją
-if (!session_id()) {
-    session_start();
-}
+// Gauname prisijungusio vartotojo duomenis
+$user = tossee_get_current_user();
 
-// Patikriname ar vartotojas prisijungęs
-if (empty($_SESSION['tossee_id'])) {
+if (!$user) {
     header("Content-Type: application/json");
     http_response_code(401);
     echo json_encode(array(
@@ -42,17 +39,8 @@ if (empty($_SESSION['tossee_id'])) {
     exit;
 }
 
-global $wpdb;
-$table = $wpdb->prefix . 'tossee_users';
-$tossee_id = $_SESSION['tossee_id'];
-
 // Gauname nuotrauką
-$photo = $wpdb->get_var(
-    $wpdb->prepare(
-        "SELECT photo FROM $table WHERE tossee_id = %s LIMIT 1",
-        $tossee_id
-    )
-);
+$photo = $user->photo;
 
 if (!$photo) {
     header("Content-Type: application/json");
