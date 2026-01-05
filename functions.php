@@ -229,3 +229,51 @@ add_action('template_redirect', function () {
 // Paslepia WP admin barą visiems vartotojams frontend'e
 add_filter('show_admin_bar', '__return_false');
 
+// REST API endpoint registracijos nuotraukai gauti
+add_action('rest_api_init', function () {
+    register_rest_route('tossee/v1', '/photo', array(
+        'methods' => 'GET',
+        'callback' => 'tossee_get_registration_photo',
+        'permission_callback' => '__return_true'
+    ));
+});
+
+function tossee_get_registration_photo($request) {
+    global $wpdb;
+
+    // Patikriname sesiją
+    if (!session_id()) {
+        session_start();
+    }
+
+    if (empty($_SESSION['tossee_id'])) {
+        return array(
+            'error' => true,
+            'message' => 'Not logged in'
+        );
+    }
+
+    $table = $wpdb->prefix . 'tossee_users';
+    $tossee_id = $_SESSION['tossee_id'];
+
+    // Gauname nuotrauką pagal tossee_id
+    $photo = $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT photo FROM $table WHERE tossee_id = %s LIMIT 1",
+            $tossee_id
+        )
+    );
+
+    if (!$photo) {
+        return array(
+            'error' => true,
+            'message' => 'Photo not found'
+        );
+    }
+
+    return array(
+        'success' => true,
+        'photo' => $photo
+    );
+}
+
