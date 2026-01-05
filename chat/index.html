@@ -705,7 +705,7 @@
       Welcome to Tossee chat!<br><br>
       To use the system, please complete your registration and enjoy chatting.
     </p>
-    <button class="welcome-popup-btn" id="completeProfileBtn">COMPLETE REGISTRATION</button>
+    <button class="welcome-popup-btn" id="completeProfileBtn" onclick="window.location.href='https://tossee.com/profile/'">COMPLETE REGISTRATION</button>
   </div>
 </div>
 
@@ -1456,7 +1456,7 @@ async function checkReportButtonSetting() {
 }
 
 // ================================================================
-// CHECK PROFILE COMPLETION & SHOW WELCOME POPUP - WITH DEBUG
+// CHECK PROFILE COMPLETION & SHOW WELCOME POPUP
 // ================================================================
 async function checkProfileCompletion() {
   console.log('%c[PROFILE CHECK] Starting profile completion check...', 'color: #00c6ff; font-weight: bold; font-size: 14px;');
@@ -1509,13 +1509,6 @@ async function checkProfileCompletion() {
       document.getElementById('chatArea').style.display = 'none';
       document.getElementById('menuToggle').style.display = 'none';
       console.log('[BLOCKING] Video, chat, and menu hidden');
-
-      const completeProfileBtn = document.getElementById('completeProfileBtn');
-      completeProfileBtn.addEventListener('click', () => {
-        console.log('[REDIRECT] User clicked Complete Registration button');
-        console.log('[REDIRECT] Redirecting to: https://tossee.com/profile/');
-        window.location.href = 'https://tossee.com/profile/';
-      });
 
       return false;
     }
