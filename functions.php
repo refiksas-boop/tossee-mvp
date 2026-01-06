@@ -419,22 +419,20 @@ function tossee_my_account_shortcode() {
             error.style.display = 'none';
 
             try {
-                const response = await fetch('/tossee-get-photo.php', { credentials: 'include' });
+                const response = await fetch('/wp-json/tossee/v1/profile', { credentials: 'include' });
 
                 if (!response.ok) {
                     throw new Error('Photo not found');
                 }
 
-                const contentType = response.headers.get('content-type');
+                const data = await response.json();
 
-                if (contentType && contentType.startsWith('image/')) {
-                    const blob = await response.blob();
-                    img.src = URL.createObjectURL(blob);
-                    img.style.display = 'block';
-                } else {
-                    const data = await response.json();
-                    throw new Error(data.message || 'Failed to load photo');
+                if (!data || !data.photo) {
+                    throw new Error('Photo not available');
                 }
+
+                img.src = data.photo;
+                img.style.display = 'block';
             } catch (err) {
                 error.textContent = err.message || 'Photo unavailable';
                 error.style.display = 'block';
