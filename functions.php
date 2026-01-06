@@ -246,32 +246,17 @@ add_action('rest_api_init', function () {
 });
 
 function tossee_get_registration_photo($request) {
-    global $wpdb;
+    // Gauname current user per plugin'o funkciją
+    $user = tossee_get_current_user();
 
-    // Patikriname sesiją
-    if (!session_id()) {
-        session_start();
-    }
-
-    if (empty($_SESSION['tossee_id'])) {
+    if (!$user) {
         return array(
             'error' => true,
             'message' => 'Not logged in'
         );
     }
 
-    $table = $wpdb->prefix . 'tossee_users';
-    $tossee_id = $_SESSION['tossee_id'];
-
-    // Gauname nuotrauką pagal tossee_id
-    $photo = $wpdb->get_var(
-        $wpdb->prepare(
-            "SELECT photo FROM $table WHERE tossee_id = %s LIMIT 1",
-            $tossee_id
-        )
-    );
-
-    if (!$photo) {
+    if (empty($user->photo)) {
         return array(
             'error' => true,
             'message' => 'Photo not found'
@@ -280,7 +265,7 @@ function tossee_get_registration_photo($request) {
 
     return array(
         'success' => true,
-        'photo' => $photo
+        'photo' => $user->photo
     );
 }
 
