@@ -25,17 +25,29 @@ add_action('rest_api_init', function () {
 });
 
 function tossee_get_registration_photo($request) {
-    // Gauname current user per plugin'o funkciją
-    $user = tossee_get_current_user();
+    // Start session
+    if (!session_id()) {
+        session_start();
+    }
 
-    if (!$user) {
+    // Check if user is logged in
+    if (empty($_SESSION['tossee_id'])) {
         return array(
             'error' => true,
             'message' => 'Not logged in'
         );
     }
 
-    if (empty($user->photo)) {
+    // Get user from database
+    global $wpdb;
+    $table = $wpdb->prefix . 'tossee_users';
+
+    $user = $wpdb->get_row($wpdb->prepare(
+        "SELECT photo FROM $table WHERE tossee_id = %s",
+        $_SESSION['tossee_id']
+    ));
+
+    if (!$user || empty($user->photo)) {
         return array(
             'error' => true,
             'message' => 'Photo not found'
