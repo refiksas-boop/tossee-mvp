@@ -8,69 +8,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// REST API endpoint registracijos nuotraukai gauti
-add_action('rest_api_init', function () {
-    register_rest_route('tossee/v1', '/photo', array(
-        'methods' => 'GET',
-        'callback' => 'tossee_get_registration_photo',
-        'permission_callback' => '__return_true'
-    ));
-
-    // Debug endpoint - sesijos patikrinimui
-    register_rest_route('tossee/v1', '/debug-session', array(
-        'methods' => 'GET',
-        'callback' => 'tossee_debug_session',
-        'permission_callback' => '__return_true'
-    ));
-});
-
-function tossee_get_registration_photo($request) {
-    // Start session
-    if (!session_id()) {
-        session_start();
-    }
-
-    // Check if user is logged in
-    if (empty($_SESSION['tossee_id'])) {
-        return array(
-            'error' => true,
-            'message' => 'Not logged in'
-        );
-    }
-
-    // Get user from database
-    global $wpdb;
-    $table = $wpdb->prefix . 'tossee_users';
-
-    $user = $wpdb->get_row($wpdb->prepare(
-        "SELECT photo FROM $table WHERE tossee_id = %s",
-        $_SESSION['tossee_id']
-    ));
-
-    if (!$user || empty($user->photo)) {
-        return array(
-            'error' => true,
-            'message' => 'Photo not found'
-        );
-    }
-
-    return array(
-        'success' => true,
-        'photo' => $user->photo
-    );
-}
-
-function tossee_debug_session($request) {
-    if (!session_id()) {
-        session_start();
-    }
-
-    return array(
-        'session_id' => session_id(),
-        'tossee_uid' => isset($_SESSION['tossee_uid']) ? $_SESSION['tossee_uid'] : null,
-        'session_data' => $_SESSION
-    );
-}
+// Note: REST API endpoints are handled by tossee-core plugin
+// /wp-json/tossee/v1/profile - returns user data including photo
 
 // My Account shortcode
 add_shortcode('tossee_my_account', 'tossee_my_account_shortcode');
@@ -210,7 +149,7 @@ function tossee_my_account_shortcode() {
             error.style.display = 'none';
 
             try {
-                const response = await fetch('/wp-json/tossee/v1/photo', { credentials: 'include' });
+                const response = await fetch('/wp-json/tossee/v1/profile', { credentials: 'include' });
 
                 if (!response.ok) {
                     throw new Error('Photo not found');
@@ -218,8 +157,8 @@ function tossee_my_account_shortcode() {
 
                 const data = await response.json();
 
-                if (data.error || !data.photo) {
-                    throw new Error(data.message || 'Photo not available');
+                if (!data || !data.photo) {
+                    throw new Error('Photo not available');
                 }
 
                 img.src = data.photo;
