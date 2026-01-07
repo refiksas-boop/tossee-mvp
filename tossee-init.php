@@ -11,6 +11,47 @@ if (!defined('ABSPATH')) {
 // Note: REST API endpoints are handled by tossee-core plugin
 // /wp-json/tossee/v1/profile - returns user data including photo
 
+// Registration Photo endpoint - specifically for My Account page
+add_action('rest_api_init', function () {
+    register_rest_route('tossee/v1', '/registration-photo', array(
+        'methods' => 'GET',
+        'callback' => 'tossee_get_registration_photo',
+        'permission_callback' => '__return_true'
+    ));
+});
+
+function tossee_get_registration_photo() {
+    // Auth check
+    if (function_exists('tossee_get_current_user_id')) {
+        $tossee_id = tossee_get_current_user_id();
+    } else {
+        // Fallback
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $tossee_id = !empty($_SESSION['tossee_uid']) ? $_SESSION['tossee_uid'] :
+                     (!empty($_SESSION['tossee_id']) ? $_SESSION['tossee_id'] : null);
+    }
+
+    if (!$tossee_id) {
+        return new WP_Error('not_logged_in', 'Not logged in', array('status' => 401));
+    }
+
+    global $wpdb;
+    $table = $wpdb->prefix . 'tossee_users';
+
+    $photo = $wpdb->get_var($wpdb->prepare(
+        "SELECT photo FROM $table WHERE tossee_id = %s",
+        $tossee_id
+    ));
+
+    if (!$photo) {
+        return new WP_Error('no_photo', 'Photo not found', array('status' => 404));
+    }
+
+    return rest_ensure_response(array('photo' => $photo));
+}
+
 // My Account shortcode
 add_shortcode('tossee_my_account', 'tossee_my_account_shortcode');
 
@@ -149,7 +190,7 @@ function tossee_my_account_shortcode() {
             error.style.display = 'none';
 
             try {
-                const response = await fetch('/wp-json/tossee/v1/profile', { credentials: 'include' });
+                const response = await fetch('/wp-json/tossee/v1/registration-photo', { credentials: 'include' });
 
                 if (!response.ok) {
                     throw new Error('Photo not found');
