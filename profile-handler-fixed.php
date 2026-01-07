@@ -250,6 +250,13 @@ add_action('rest_api_init', function () {
         'permission_callback' => '__return_true'
     ]);
 
+    // Registration Photo endpoint for My Account page
+    register_rest_route('tossee/v1', '/registration-photo', [
+        'methods'  => 'GET',
+        'callback' => 'tossee_api_get_registration_photo',
+        'permission_callback' => '__return_true'
+    ]);
+
 });
 
 function tossee_api_get_profile() {
@@ -320,6 +327,38 @@ function tossee_api_get_profile() {
     }
 
     return rest_ensure_response($user);
+}
+
+function tossee_api_get_registration_photo() {
+    // Auth – naudojam plugin'o funkciją arba fallback
+    if (function_exists('tossee_get_current_user_id')) {
+        $tossee_id = tossee_get_current_user_id();
+    } else {
+        // Fallback - session tikrinimas
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $tossee_id = !empty($_SESSION['tossee_uid']) ? $_SESSION['tossee_uid'] : (!empty($_SESSION['tossee_id']) ? $_SESSION['tossee_id'] : null);
+    }
+
+    if ( ! $tossee_id ) {
+        return new WP_Error('no_auth', 'Not authenticated', ['status' => 401]);
+    }
+
+    global $wpdb;
+    $table = $wpdb->prefix . 'tossee_users';
+
+    // Fetch ONLY photo from registration
+    $photo = $wpdb->get_var($wpdb->prepare(
+        "SELECT photo FROM $table WHERE tossee_id = %s",
+        $tossee_id
+    ));
+
+    if ( ! $photo ) {
+        return new WP_Error('no_photo', 'Photo not found', ['status' => 404]);
+    }
+
+    return rest_ensure_response(['photo' => $photo]);
 }
 
 function tossee_api_save_profile($request) {
