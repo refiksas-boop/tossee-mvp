@@ -238,19 +238,7 @@ function tossee_get_profile_handler() {
 
 add_action('rest_api_init', function () {
 
-    register_rest_route('tossee/v1', '/profile', [
-        'methods'  => 'GET',
-        'callback' => 'tossee_api_get_profile',
-        'permission_callback' => '__return_true'
-    ]);
-
-    register_rest_route('tossee/v1', '/save-profile', [
-        'methods'  => 'POST',
-        'callback' => 'tossee_api_save_profile',
-        'permission_callback' => '__return_true'
-    ]);
-
-    // Registration Photo endpoint for My Account page
+    // ONLY Registration Photo endpoint - don't conflict with plugin
     register_rest_route('tossee/v1', '/registration-photo', [
         'methods'  => 'GET',
         'callback' => 'tossee_api_get_registration_photo',
@@ -258,76 +246,6 @@ add_action('rest_api_init', function () {
     ]);
 
 });
-
-function tossee_api_get_profile() {
-    // Auth – naudojam plugin'o funkciją arba fallback
-    if (function_exists('tossee_get_current_user_id')) {
-        $tossee_id = tossee_get_current_user_id();
-    } else {
-        // Fallback - session tikrinimas
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        $tossee_id = !empty($_SESSION['tossee_uid']) ? $_SESSION['tossee_uid'] : (!empty($_SESSION['tossee_id']) ? $_SESSION['tossee_id'] : null);
-    }
-
-    if ( ! $tossee_id ) {
-        return new WP_Error('no_auth', 'Not authenticated', ['status' => 401]);
-    }
-
-    global $wpdb;
-    $table = $wpdb->prefix . 'tossee_users';
-
-    // NAUDOJAME 'photo' (REGISTRATION PHOTO)
-    $user = $wpdb->get_row(
-        $wpdb->prepare(
-            "SELECT
-                username,
-                email,
-                dob,
-                first_name,
-                last_name,
-                gender,
-                country,
-                state,
-                city,
-                about,
-                photo
-             FROM $table
-             WHERE tossee_id = %s
-             LIMIT 1",
-            $tossee_id
-        ),
-        ARRAY_A
-    );
-
-    if ( ! $user ) {
-        return new WP_Error('user_not_found', 'User not found', ['status' => 404]);
-    }
-
-    // Užtikriname, kad visi laukai egzistuoja
-    $fields = [
-        'username',
-        'email',
-        'dob',
-        'first_name',
-        'last_name',
-        'gender',
-        'country',
-        'state',
-        'city',
-        'about',
-        'photo'
-    ];
-
-    foreach ( $fields as $field ) {
-        if ( ! isset($user[$field]) ) {
-            $user[$field] = '';
-        }
-    }
-
-    return rest_ensure_response($user);
-}
 
 function tossee_api_get_registration_photo() {
     // Auth – naudojam plugin'o funkciją arba fallback
@@ -359,81 +277,4 @@ function tossee_api_get_registration_photo() {
     }
 
     return rest_ensure_response(['photo' => $photo]);
-}
-
-function tossee_api_save_profile($request) {
-    // Auth – naudojam plugin'o funkciją arba fallback
-    if (function_exists('tossee_get_current_user_id')) {
-        $tossee_id = tossee_get_current_user_id();
-    } else {
-        // Fallback - session tikrinimas
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        $tossee_id = !empty($_SESSION['tossee_uid']) ? $_SESSION['tossee_uid'] : (!empty($_SESSION['tossee_id']) ? $_SESSION['tossee_id'] : null);
-    }
-
-    if ( ! $tossee_id ) {
-        return new WP_Error('no_auth', 'Not authenticated', ['status' => 401]);
-    }
-
-    $data = $request->get_json_params();
-
-    if ( ! is_array($data) ) {
-        return new WP_Error('invalid_data', 'Invalid data format', ['status' => 400]);
-    }
-
-    $allowed_fields = [
-        'first_name',
-        'last_name',
-        'gender',
-        'country',
-        'state',
-        'city',
-        'about'
-    ];
-
-    $update = [];
-
-    foreach ( $allowed_fields as $field ) {
-        if ( array_key_exists($field, $data) ) {
-            $update[$field] = ($field === 'about')
-                ? sanitize_textarea_field($data[$field])
-                : sanitize_text_field($data[$field]);
-        }
-    }
-
-    if (
-        ! empty($data['photo']) &&
-        is_string($data['photo']) &&
-        strpos($data['photo'], 'data:image/') === 0
-    ) {
-        $update['profile_photo'] = $data['photo'];
-    }
-
-    if ( empty($update) ) {
-        return rest_ensure_response([
-            'status' => 'nothing_to_update',
-            'tossee_id' => $tossee_id
-        ]);
-    }
-
-    global $wpdb;
-    $table = $wpdb->prefix . 'tossee_users';
-
-    $result = $wpdb->update(
-        $table,
-        $update,
-        ['tossee_id' => $tossee_id]
-    );
-
-    if ( $result === false ) {
-        return new WP_Error('db_error', $wpdb->last_error, ['status' => 500]);
-    }
-
-    return rest_ensure_response([
-        'status' => 'ok',
-        'updated_fields' => array_keys($update),
-        'tossee_id' => $tossee_id
-    ]);
 }
