@@ -37,8 +37,16 @@ function tossee_update_profile_handler() {
     // Visada JSON
     header('Content-Type: application/json; charset=utf-8');
 
-    // 1. AUTH – naudojam plugin'o funkciją
-    $tossee_id = tossee_get_current_user_id();
+    // 1. AUTH – naudojam plugin'o funkciją arba fallback
+    if (function_exists('tossee_get_current_user_id')) {
+        $tossee_id = tossee_get_current_user_id();
+    } else {
+        // Fallback - session tikrinimas
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $tossee_id = !empty($_SESSION['tossee_uid']) ? $_SESSION['tossee_uid'] : (!empty($_SESSION['tossee_id']) ? $_SESSION['tossee_id'] : null);
+    }
 
     if ( ! $tossee_id ) {
         echo json_encode([
@@ -151,8 +159,16 @@ function tossee_get_profile_handler() {
     // AUTO-MIGRATION: Prideda trūkstamus stulpelius jei jų nėra
     tossee_ensure_profile_columns();
 
-    // 1. Auth – naudojam plugin'o funkciją
-    $tossee_id = tossee_get_current_user_id();
+    // 1. Auth – naudojam plugin'o funkciją arba fallback
+    if (function_exists('tossee_get_current_user_id')) {
+        $tossee_id = tossee_get_current_user_id();
+    } else {
+        // Fallback - session tikrinimas
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $tossee_id = !empty($_SESSION['tossee_uid']) ? $_SESSION['tossee_uid'] : (!empty($_SESSION['tossee_id']) ? $_SESSION['tossee_id'] : null);
+    }
 
     if ( ! $tossee_id ) {
         echo json_encode(['error' => 'no_auth']);
@@ -237,7 +253,16 @@ add_action('rest_api_init', function () {
 });
 
 function tossee_api_get_profile() {
-    $tossee_id = tossee_get_current_user_id();
+    // Auth – naudojam plugin'o funkciją arba fallback
+    if (function_exists('tossee_get_current_user_id')) {
+        $tossee_id = tossee_get_current_user_id();
+    } else {
+        // Fallback - session tikrinimas
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $tossee_id = !empty($_SESSION['tossee_uid']) ? $_SESSION['tossee_uid'] : (!empty($_SESSION['tossee_id']) ? $_SESSION['tossee_id'] : null);
+    }
 
     if ( ! $tossee_id ) {
         return new WP_Error('no_auth', 'Not authenticated', ['status' => 401]);
@@ -298,7 +323,16 @@ function tossee_api_get_profile() {
 }
 
 function tossee_api_save_profile($request) {
-    $tossee_id = tossee_get_current_user_id();
+    // Auth – naudojam plugin'o funkciją arba fallback
+    if (function_exists('tossee_get_current_user_id')) {
+        $tossee_id = tossee_get_current_user_id();
+    } else {
+        // Fallback - session tikrinimas
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $tossee_id = !empty($_SESSION['tossee_uid']) ? $_SESSION['tossee_uid'] : (!empty($_SESSION['tossee_id']) ? $_SESSION['tossee_id'] : null);
+    }
 
     if ( ! $tossee_id ) {
         return new WP_Error('no_auth', 'Not authenticated', ['status' => 401]);
