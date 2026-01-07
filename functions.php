@@ -203,14 +203,6 @@ require_once ASTRA_THEME_DIR . 'inc/core/markup/class-astra-markup.php';
 require_once ASTRA_THEME_DIR . 'inc/core/deprecated/deprecated-filters.php';
 require_once ASTRA_THEME_DIR . 'inc/core/deprecated/deprecated-hooks.php';
 require_once ASTRA_THEME_DIR . 'inc/core/deprecated/deprecated-functions.php';
-
-/**
- * Load Tossee custom functions
- */
-if (file_exists(get_template_directory() . '/tossee-init.php')) {
-    require_once get_template_directory() . '/tossee-init.php';
-}
-
 // Po registracijos visada redirect į chat
 add_filter( 'registration_redirect', function( $redirect_to ) {
     return 'https://chat.tossee.com';
@@ -236,3 +228,4 @@ add_action('template_redirect', function () {
 });
 // Paslepia WP admin barą visiems vartotojams frontend'e
 add_filter('show_admin_bar', '__return_false');
+
