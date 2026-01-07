@@ -1,0 +1,15 @@
+DEBUGGING STEPS:
+
+1. Atidaryk My Account puslapį
+2. Spausk F12 (Developer Tools)
+3. Eik į "Network" tab
+4. Paspausk "Registration Photo" mygtuką
+5. Ieškokite užklausos: /wp-json/tossee/v1/profile
+6. Spausk ant jos ir pažiūrėk "Response" tab
+
+Ką rodo response?
+- Ar yra "photo" laukas?
+- Ar "photo" yra tuščias arba null?
+- Kokia klaida rodoma?
+
+Taip pat Console tab'e patikrink ar yra klaidų (raudonos eilutės)
