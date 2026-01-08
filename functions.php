@@ -238,9 +238,12 @@ add_action('admin_post_tossee_get_profile', 'tossee_get_profile_handler');
 add_action('admin_post_nopriv_tossee_get_profile', 'tossee_get_profile_handler');
 
 function tossee_get_profile_handler() {
+    $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : 'https://chat.tossee.com';
     header('Content-Type: application/json');
-    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Origin: ' . $origin);
     header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
 
     if (!is_user_logged_in()) {
         wp_send_json_error(['message' => 'Not logged in'], 401);
@@ -273,9 +276,12 @@ add_action('admin_post_tossee_update_profile', 'tossee_update_profile_handler');
 add_action('admin_post_nopriv_tossee_update_profile', 'tossee_update_profile_handler');
 
 function tossee_update_profile_handler() {
+    $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : 'https://chat.tossee.com';
     header('Content-Type: application/json');
-    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Origin: ' . $origin);
     header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
 
     if (!is_user_logged_in()) {
         wp_send_json_error(['message' => 'Not logged in'], 401);
