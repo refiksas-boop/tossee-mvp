@@ -700,6 +700,7 @@
 <!-- WELCOME POPUP -->
 <div id="welcomePopup" class="welcome-popup">
   <div class="welcome-popup-content">
+    <span class="close-popup" id="closeWelcomePopup" style="position: absolute; top: 15px; right: 20px; font-size: 28px; font-weight: bold; color: #fff; cursor: pointer; z-index: 10;">&times;</span>
     <h2 class="welcome-popup-title">🎉 WELCOME! 🎉</h2>
     <p class="welcome-popup-message">
       Welcome to Tossee chat!<br><br>
@@ -1499,16 +1500,11 @@ async function checkProfileCompletion() {
     console.log('%c[PROFILE CHECK] Profile Complete:', 'font-weight: bold; font-size: 14px;', !isIncomplete ? '✅ YES' : '❌ NO');
 
     if (isIncomplete) {
-      console.log('%c[PROFILE CHECK] Profile INCOMPLETE - Showing welcome popup and blocking chat', 'color: #ff9800; font-weight: bold;');
+      console.log('%c[PROFILE CHECK] Profile INCOMPLETE - Showing welcome popup (video and chat still work)', 'color: #ff9800; font-weight: bold;');
 
       const welcomePopup = document.getElementById('welcomePopup');
       welcomePopup.style.display = 'flex';
-      console.log('[POPUP] Welcome popup displayed');
-
-      document.querySelector('.video-wrapper').style.display = 'none';
-      document.getElementById('chatArea').style.display = 'none';
-      document.getElementById('menuToggle').style.display = 'none';
-      console.log('[BLOCKING] Video, chat, and menu hidden');
+      console.log('[POPUP] Welcome popup displayed - user can still use chat');
 
       return false;
     }
@@ -1528,6 +1524,19 @@ async function checkProfileCompletion() {
 }
 
 // ================================================================
+// WELCOME POPUP CLOSE BUTTON
+// ================================================================
+const closeWelcomePopup = document.getElementById('closeWelcomePopup');
+const welcomePopup = document.getElementById('welcomePopup');
+
+if (closeWelcomePopup) {
+  closeWelcomePopup.addEventListener('click', () => {
+    welcomePopup.style.display = 'none';
+    console.log('[POPUP] Welcome popup closed by user');
+  });
+}
+
+// ================================================================
 // AUTO-START ON PAGE LOAD
 // ================================================================
 window.addEventListener("load", async () => {
@@ -1544,9 +1553,10 @@ window.addEventListener("load", async () => {
     showStatus("Starting...");
     setTimeout(() => {
       startMatching();
+      welcomePopup.style.display = 'none';
     }, 1000);
   } else {
-    console.log("[INIT] Profile incomplete - blocking chat functionality");
+    console.log("[INIT] Profile incomplete - showing welcome popup (video and chat work)");
   }
 });
 
