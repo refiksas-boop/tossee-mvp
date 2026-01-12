@@ -1,0 +1,24 @@
+# Prevent WordPress from handling chat/api requests
+# Allow direct PHP execution
+
+<IfModule mod_rewrite.c>
+RewriteEngine Off
+</IfModule>
+
+# Ensure PHP files can be executed directly
+<FilesMatch "\.php$">
+    SetHandler application/x-httpd-php
+</FilesMatch>
+
+# Security: Block access to sensitive files
+<FilesMatch "^(config\.php)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Allow CORS for API endpoints
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization"
+</IfModule>

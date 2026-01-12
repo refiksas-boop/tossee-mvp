@@ -15,6 +15,10 @@ function tossee_create_users_table() {
         dob DATE NOT NULL,
         photo LONGTEXT NOT NULL,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        free_used_seconds INT(11) NOT NULL DEFAULT 0,
+        paid_seconds INT(11) NOT NULL DEFAULT 0,
+        unlimited_until DATETIME NULL DEFAULT NULL,
+        call_started_at DATETIME NULL DEFAULT NULL,
         PRIMARY KEY (id),
         UNIQUE KEY email (email),
         UNIQUE KEY tossee_id (tossee_id)

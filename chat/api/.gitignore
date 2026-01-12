@@ -1,0 +1,22 @@
+# Vendor directory (Composer dependencies)
+/vendor/
+
+# Composer lock file (optional - commit if you want consistent versions)
+# composer.lock
+
+# Error logs
+error.log
+*.log
+
+# Environment/config (if using separate .env)
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
