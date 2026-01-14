@@ -62,9 +62,10 @@ error_log("POST DATA: " . print_r($_POST, true));
             'password_hash' => $hash,
             'dob'           => $dob,
             'photo'         => $photo,
+            'paid_seconds'  => 1800,                    // 30 min FREE
             'created_at'    => current_time('mysql'),
         ],
-        [ '%s','%s','%s','%s','%s','%s','%s' ]
+        [ '%s','%s','%s','%s','%s','%s','%d','%s' ]
     );
 
     if ( ! $inserted ) {
