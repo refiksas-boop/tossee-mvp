@@ -1,0 +1,54 @@
+==================================
+PAPRASTAS UID FIX - TIK URL
+==================================
+
+PROBLEMA: Pricing puslapyje nėra ?uid=XXX URL parametre
+
+SPRENDIMAS: Chat puslapyje, kai redirect į pricing, pridėk uid
+
+
+1️⃣ CHAT PUSLAPYJE
+==================
+
+Kur yra redirect į pricing (pvz. kai laikas baigiasi), pakeisk:
+
+BUVO:
+-----
+window.location.href = 'https://tossee.com/pricing-plans';
+
+NAUJAS:
+-------
+const uid = localStorage.getItem('tossee_id');
+window.location.href = 'https://tossee.com/pricing-plans?uid=' + uid;
+
+
+ARBA FUNKCIJA:
+--------------
+function goToPricing() {
+  const uid = localStorage.getItem('tossee_id');
+  window.location.href = 'https://tossee.com/pricing-plans?uid=' + uid;
+}
+
+// Naudok:
+goToPricing();
+
+
+2️⃣ PRICING PUSLAPYJE (jau veikia!)
+====================================
+
+Tavo dabartinis pricing kodas jau priima ?uid= iš URL:
+
+✅ $uid = isset($_GET['uid']) ? sanitize_text_field(wp_unslash($_GET['uid'])) : '';
+✅ const PHP_UID = <?php echo wp_json_encode($uid); ?>;
+✅ if (PHP_UID) localStorage.setItem('tossee_id', PHP_UID);
+
+Tai veiks!
+
+
+TESTAS:
+=======
+1. Chat puslapyje: console.log(localStorage.getItem('tossee_id'))
+2. Redirect: https://tossee.com/pricing-plans?uid=TASUID
+3. Pricing puslapyje: console.log(localStorage.getItem('tossee_id'))
+
+DONE! 🎉
