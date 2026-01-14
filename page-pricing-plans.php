@@ -15,6 +15,12 @@ if (empty($uid) && isset($_SESSION['tossee_id'])) {
     $uid = $_SESSION['tossee_id'];
 }
 
+// Auto-redirect with UID if not in URL
+if (!empty($uid) && !isset($_GET['uid'])) {
+    wp_redirect(add_query_arg('uid', $uid));
+    exit;
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -39,36 +45,6 @@ body{
   max-width:1100px;
   margin:0 auto;
   padding:20px;
-}
-
-/* UID DISPLAY */
-.uid-box{
-  background:rgba(0,198,255,0.15);
-  border:2px solid #00c6ff;
-  border-radius:14px;
-  padding:16px 24px;
-  margin-bottom:30px;
-  max-width:500px;
-  margin-left:auto;
-  margin-right:auto;
-}
-.uid-label{
-  font-size:12px;
-  opacity:0.8;
-  margin-bottom:6px;
-}
-.uid-value{
-  font-family:'Courier New',monospace;
-  font-size:20px;
-  font-weight:800;
-  color:#00c6ff;
-  letter-spacing:1px;
-  word-break:break-all;
-}
-.uid-warning{
-  background:rgba(255,107,107,0.15);
-  border:2px solid #ff6b6b;
-  color:#ff6b6b;
 }
 
 h2{
@@ -178,9 +154,6 @@ h2{
     background-position:center 20px;
     background-size:180px;
   }
-  .uid-value{
-    font-size:16px;
-  }
   .plans{
     grid-template-columns:1fr;
   }
@@ -190,19 +163,6 @@ h2{
 
 <body>
 <div class="wrap">
-
-<!-- UID DISPLAY -->
-<?php if (!empty($uid)) : ?>
-<div class="uid-box">
-  <div class="uid-label">Your User ID</div>
-  <div class="uid-value" id="uid-display"><?php echo esc_html($uid); ?></div>
-</div>
-<?php else : ?>
-<div class="uid-box uid-warning">
-  <div class="uid-label">⚠ No User ID Found</div>
-  <div class="uid-value" id="uid-display">Please log in first</div>
-</div>
-<?php endif; ?>
 
 <h2>You've used your free time</h2>
 <div class="sub">Stay longer and keep chatting</div>
@@ -311,9 +271,6 @@ function getUserId(){
   const urlUid = params.get('uid');
   if(urlUid){
     localStorage.setItem('tossee_id', urlUid);
-    // Update display
-    const display = document.getElementById('uid-display');
-    if(display) display.textContent = urlUid;
     return urlUid;
   }
 
