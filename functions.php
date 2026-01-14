@@ -229,3 +229,23 @@ add_action('template_redirect', function () {
 // Paslepia WP admin barą visiems vartotojams frontend'e
 add_filter('show_admin_bar', '__return_false');
 
+// Pricing page auto-redirect with UID
+add_action('template_redirect', function() {
+    if (is_page('pricing-plans')) {
+        if (!session_id()) {
+            session_start();
+        }
+
+        $uid = isset($_GET['uid']) ? sanitize_text_field($_GET['uid']) : '';
+        if (empty($uid) && isset($_SESSION['tossee_id'])) {
+            $uid = $_SESSION['tossee_id'];
+        }
+
+        // Auto-redirect with UID if not in URL
+        if (!empty($uid) && !isset($_GET['uid'])) {
+            wp_redirect(add_query_arg('uid', $uid));
+            exit;
+        }
+    }
+});
+
