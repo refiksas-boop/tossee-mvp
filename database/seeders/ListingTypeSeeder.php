@@ -12,6 +12,20 @@ class ListingTypeSeeder extends Seeder
      */
     public function run(): void
     {
-        //
+        $types = [
+            ['name' => 'Parduodu', 'slug' => 'parduodu'],
+            ['name' => 'Perku', 'slug' => 'perku'],
+            ['name' => 'Nuomoju', 'slug' => 'nuomoju'],
+            ['name' => 'Ieškau', 'slug' => 'ieskau'],
+            ['name' => 'Keičiu', 'slug' => 'keiciu'],
+            ['name' => 'Dovanoju', 'slug' => 'dovanoju'],
+        ];
+
+        foreach ($types as $type) {
+            \App\Models\ListingType::updateOrCreate(
+                ['slug' => $type['slug']],
+                $type
+            );
+        }
     }
 }

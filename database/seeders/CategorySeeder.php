@@ -97,15 +97,23 @@ class CategorySeeder extends Seeder
             $subcategories = $categoryData['subcategories'] ?? [];
             unset($categoryData['subcategories']);
 
-            $category = \App\Models\Category::create($categoryData);
+            $category = \App\Models\Category::updateOrCreate(
+                ['slug' => $categoryData['slug']],
+                $categoryData
+            );
 
             foreach ($subcategories as $position => $subData) {
-                $category->subcategories()->create([
-                    'name' => $subData['name'],
-                    'slug' => $subData['slug'],
-                    'is_active' => true,
-                    'position' => $position + 1,
-                ]);
+                \App\Models\Subcategory::updateOrCreate(
+                    [
+                        'category_id' => $category->id,
+                        'slug' => $subData['slug']
+                    ],
+                    [
+                        'name' => $subData['name'],
+                        'is_active' => true,
+                        'position' => $position + 1,
+                    ]
+                );
             }
         }
     }
