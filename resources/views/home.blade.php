@@ -46,13 +46,13 @@
                class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition text-center">
                 <div class="text-4xl mb-3">
                     @switch($category->icon)
-                        @case('truck') =� @break
-                        @case('home') <� @break
-                        @case('briefcase') =� @break
-                        @case('shopping-bag') =� @break
-                        @case('user-group') =e @break
-                        @case('heart') = @break
-                        @default (
+                        @case('truck') 🚗 @break
+                        @case('home') 🏠 @break
+                        @case('briefcase') 💼 @break
+                        @case('shopping-bag') 🛍️ @break
+                        @case('user-group') 👥 @break
+                        @case('heart') ❤️ @break
+                        @default 📋
                     @endswitch
                 </div>
                 <h3 class="font-semibold text-gray-900">{{ $category->name }}</h3>
