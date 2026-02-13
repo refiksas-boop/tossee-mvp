@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Tossee</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 450px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .logo {
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .links {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+
+        .links a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">🎥</div>
+        <h1>Welcome to Tossee</h1>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <form action="/wp-admin/admin-post.php" method="POST" id="loginForm">
+            <input type="hidden" name="action" value="tossee_custom_login">
+
+            <div class="form-group">
+                <label for="user_login">Email or Username</label>
+                <input
+                    type="text"
+                    id="user_login"
+                    name="user_login"
+                    required
+                    placeholder="Enter your email or username"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="user_pass">Password</label>
+                <input
+                    type="password"
+                    id="user_pass"
+                    name="user_pass"
+                    required
+                    placeholder="Enter your password"
+                >
+            </div>
+
+            <button type="submit" class="btn">Login</button>
+        </form>
+
+        <div class="links">
+            <p>Don't have an account? <a href="/register-form.php">Sign up</a></p>
+        </div>
+    </div>
+
+    <script>
+        // Display error messages from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('login_error');
+
+        if (error) {
+            const errorDiv = document.getElementById('errorMessage');
+            const errorMessages = {
+                'missing_fields': 'Please enter both email/username and password.',
+                'invalid_credentials': 'Invalid email/username or password.',
+                'user_not_found': 'No account found with these credentials.',
+                'unknown': 'An error occurred. Please try again.'
+            };
+
+            errorDiv.textContent = errorMessages[error] || errorMessages['unknown'];
+            errorDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
