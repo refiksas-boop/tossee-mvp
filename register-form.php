@@ -1,3 +1,4 @@
+<?php
 /* ================================
    TOSSEE – REGISTRATION SHORTCODE
    Custom users (NO WP users)
@@ -157,8 +158,7 @@ function tossee_register_form_shortcode() {
 
   <form id="tossee-register-form"
       method="post"
-      action="https://tossee.com/wp-admin/admin-post.php"
-
+      action="https://tossee.com/wp-admin/admin-post.php">
 
     <input type="hidden" name="action" value="tossee_custom_register">
     <input type="hidden" name="redirect_to" value="https://tossee.com/chat">
@@ -346,10 +346,17 @@ function showError(msg) {
     document.getElementById("errBtn").onclick = () => modalErr.remove();
 }
 
-// check GET param from PHP redirect (?error=email_exists)
+// check GET param from PHP redirect
 const params = new URLSearchParams(window.location.search);
-if (params.get("error") === "email_exists") {
+const regError = params.get("reg_error");
+if (regError === "email_exists") {
     showError("This email is already registered.");
+} else if (regError === "username_exists") {
+    showError("This username is already taken.");
+} else if (regError === "missing_fields") {
+    showError("Please fill in all required fields.");
+} else if (regError === "save_failed") {
+    showError("Registration failed. Please try again.");
 }
 </script>
 <?php

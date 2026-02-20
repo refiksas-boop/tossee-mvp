@@ -1,3 +1,4 @@
+<?php
 /* ================================
    TOSSEE – CUSTOM REGISTER HANDLER
    (NE kuria WP users)
@@ -36,13 +37,24 @@ error_log("POST DATA: " . print_r($_POST, true));
     $photo    = wp_unslash( $_POST['photo'] );
 
     /* --- Tikrinam ar email jau egzistuoja --- */
-    $exists = $wpdb->get_var(
+    $email_exists = $wpdb->get_var(
         $wpdb->prepare("SELECT COUNT(*) FROM $table WHERE email = %s", $email)
     );
 
-    if ( $exists > 0 ) {
+    if ( $email_exists > 0 ) {
         $back = wp_get_referer() ?: home_url('/register');
         wp_safe_redirect( add_query_arg('reg_error', 'email_exists', $back) );
+        exit;
+    }
+
+    /* --- Tikrinam ar username jau egzistuoja --- */
+    $user_exists = $wpdb->get_var(
+        $wpdb->prepare("SELECT COUNT(*) FROM $table WHERE username = %s", $username)
+    );
+
+    if ( $user_exists > 0 ) {
+        $back = wp_get_referer() ?: home_url('/register');
+        wp_safe_redirect( add_query_arg('reg_error', 'username_exists', $back) );
         exit;
     }
 
